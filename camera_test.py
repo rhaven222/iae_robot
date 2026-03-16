@@ -9,7 +9,7 @@ while True:
         break
     cv2. imshow( "Camera", frame )
     
-    if cv2.waitKey(1) & Oxff == ord(*q'):
+    if cv2.waitKey(1) & Oxff == ord('q'):
         break
         
 pic. release()
