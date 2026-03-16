@@ -28,43 +28,49 @@ claw.angle = 90
 claw_orient.angle = 90
 arm_mid.angle = 90
 arm_base.angle = 90
-time.sleep(2)
+time.sleep(4)
 
 # Test claw open/close
 print("Testing claw on channel 12")
 print("Claw open")
 claw.angle = 40
-time.sleep(2)
+time.sleep(4)
 print("Claw close")
 claw.angle = 110
-time.sleep(2)
+time.sleep(4)
 
 # Test claw orientation
 print("Testing claw orientation on channel 13")
-print("Rotate one direction")
+print("Rotate one direction to the left")
+#tilt left
 claw_orient.angle = 40
-time.sleep(2)
-print("Rotate other direction")
+time.sleep(4)
+#tilt right
+print("Rotate other to the right")
 claw_orient.angle = 140
-time.sleep(2)
+time.sleep(4)
 
 # Test upper arm joint
 print("Testing arm joint on channel 14")
-print("Move joint one way")
+print("Move joint one way - UP")
+#move up
 arm_mid.angle = 60
-time.sleep(2)
-print("Move joint other way")
+time.sleep(4)
+#move down
+print("Move joint other way - DOWN")
 arm_mid.angle = 120
-time.sleep(2)
+time.sleep(4)
 
 # Test base arm joint
 print("Testing base joint on channel 15")
-print("Move base one way")
+print("Move base one way - UP")
+#move up
 arm_base.angle = 60
-time.sleep(2)
-print("Move base other way")
+time.sleep(4)
+#Move down
+print("Move base other way - DOWN")
 arm_base.angle = 120
-time.sleep(2)
+time.sleep(4)
 
 # Return to center
 print("Returning all servos to center")
