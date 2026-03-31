@@ -203,10 +203,10 @@ class CameraServos(SmoothServoGroup):
        
         self.PAN_CENTER = 90       # change until straight ahead
         self.TILT_FORWARD = 90      # change until level/straight ahead
-        self.TILT_UP_MAX = 60       # reduce so camera does not hit robot
-        self.PAN_LEFT = 60
-        self.PAN_RIGHT = 180
-        self.TILT_MIN = 20
+        self.TILT_UP_MAX = 150       # reduce so camera does not hit robot
+        self.PAN_LEFT = 150
+        self.PAN_RIGHT = 30
+        self.TILT_MIN = 5
     
 
         self.pan_pos = self.PAN_CENTER
