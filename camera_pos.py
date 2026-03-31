@@ -7,8 +7,8 @@ camera = robot.camera
 print("Testing camera movement")
 
 
-camera.set_tilt(150)
+camera.set_tilt(50)
 time.sleep(2)
 
-camera.set_pan(150)
+camera.set_pan(0)
 time.sleep(2)
