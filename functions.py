@@ -197,17 +197,17 @@ class CameraServos(SmoothServoGroup):
     def __init__(self, pca):
         super().__init__(pca)
 
-        self.tilt = servo.Servo(self.pca.channels[0])  # vertical
-        self.pan = servo.Servo(self.pca.channels[1])   # horizontal
+        self.pan = servo.Servo(self.pca.channels[0])  # vertical
+        self.tilt = servo.Servo(self.pca.channels[1])   # horizontal
 
-        # ==== TUNE THESE FOR YOUR ROBOT ====
+       
         self.PAN_CENTER = 90       # change until straight ahead
         self.TILT_FORWARD = 90      # change until level/straight ahead
         self.TILT_UP_MAX = 60       # reduce so camera does not hit robot
         self.PAN_LEFT = 60
         self.PAN_RIGHT = 180
         self.TILT_MIN = 20
-        # ===================================
+    
 
         self.pan_pos = self.PAN_CENTER
         self.tilt_pos = self.TILT_FORWARD
