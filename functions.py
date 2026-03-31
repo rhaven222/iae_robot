@@ -143,9 +143,9 @@ class Arm:
 
     def fold_arm(self, delay=0.02):
         self.move_smooth(self.base, self.base_pos, 120, delay)
-        self.base_pos = 120
+        self.base_pos = 160
         self.move_smooth(self.mid, self.mid_pos, 40, delay)
-        self.mid_pos = 40
+        self.mid_pos = 30
 
     def center(self):
         self.set_all(90, 90, 90, 90)
