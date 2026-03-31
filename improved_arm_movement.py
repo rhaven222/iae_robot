@@ -19,7 +19,7 @@ claw_orient = servo.Servo(pca.channels[13])
 arm_mid = servo.Servo(pca.channels[14])
 arm_base = servo.Servo(pca.channels[15])
 
-def move_servo_smooth(servo_obj, start, end, delay=0.03):
+def move_servo_smooth(servo_obj, start, end, delay=0.02):
     current = start
     servo_obj.angle = current
     time.sleep(delay)
