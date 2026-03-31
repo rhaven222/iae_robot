@@ -189,18 +189,18 @@ class Arm(SmoothServoGroup):
         self.base_pos = angle
 
 
-# =========================
+
 # CAMERA SERVO CLASS
-# =========================
+
+
 class CameraServos(SmoothServoGroup):
     def __init__(self, pca):
         super().__init__(pca)
 
-        # channel 0 = vertical
-        # channel 1 = horizontal
-        self.tilt = servo.Servo(self.pca.channels[0])
-        self.pan = servo.Servo(self.pca.channels[1])
+        self.tilt = servo.Servo(self.pca.channels[0])  # vertical
+        self.pan = servo.Servo(self.pca.channels[1])   # horizontal
 
+        # correct "straight ahead"
         self.tilt_pos = 20
         self.pan_pos = 90
 
@@ -230,7 +230,7 @@ class CameraServos(SmoothServoGroup):
         self.move_smooth(self.tilt, self.tilt_pos, 145, delay)
         self.tilt_pos = 145
 
-    def look_down(self, delay=0.02):
+    def look_forward(self, delay=0.02):
         self.move_smooth(self.tilt, self.tilt_pos, 20, delay)
         self.tilt_pos = 20
 
@@ -240,7 +240,7 @@ class CameraServos(SmoothServoGroup):
         self.pan_pos = angle
 
     def set_tilt(self, angle, delay=0.02):
-        angle = max(15, min(145, angle))
+        angle = max(15, min(145, angle))  # protect servo
         self.move_smooth(self.tilt, self.tilt_pos, angle, delay)
         self.tilt_pos = angle
 
