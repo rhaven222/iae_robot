@@ -204,7 +204,7 @@ class CameraServos(SmoothServoGroup):
         self.PAN_LEFT = 0
         self.PAN_RIGHT = 180
 
-        self.TILT_FORWARD = 15
+        self.TILT_FORWARD = 5
         self.TILT_UP_MAX = 100
         self.TILT_MIN = 15
 
@@ -221,11 +221,11 @@ class CameraServos(SmoothServoGroup):
         self.move_smooth(self.tilt, self.tilt_pos, self.TILT_FORWARD, delay)
         self.tilt_pos = self.TILT_FORWARD
 
-    def look_left(self, delay=0.02):
+    def look_right(self, delay=0.02):
         self.move_smooth(self.pan, self.pan_pos, self.PAN_LEFT, delay)
         self.pan_pos = self.PAN_LEFT
 
-    def look_right(self, delay=0.02):
+    def look_left(self, delay=0.02):
         self.move_smooth(self.pan, self.pan_pos, self.PAN_RIGHT, delay)
         self.pan_pos = self.PAN_RIGHT
 
