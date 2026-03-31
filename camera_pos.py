@@ -7,4 +7,4 @@ camera = robot.camera
 print("Testing camera movement")
 
 
-camera.set_tilt(120)
+camera.set_tilt(45)
