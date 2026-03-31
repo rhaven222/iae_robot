@@ -37,17 +37,17 @@ class Motors:
         time.sleep(duration)
         self.stop()
 
-    def turn_right(self, duration, speed):
+    def turn_left(self, duration, speed):
         self.dir1.off()
-        self.dir2.off()   # adjust if direction is wrong
+        self.dir2.off()   
         self.pwm1.value = speed
         self.pwm2.value = speed
         time.sleep(duration)
         self.stop()
 
-    def turn_left(self, duration, speed):
+    def turn_right(self, duration, speed):
         self.dir1.on()
-        self.dir2.on()   # adjust if direction is wrong
+        self.dir2.on()   
         self.pwm1.value = speed
         self.pwm2.value = speed
         time.sleep(duration)
