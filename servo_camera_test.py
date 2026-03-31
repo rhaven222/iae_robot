@@ -107,7 +107,7 @@ pwm.setServoAngle(0,90)
 time.sleep(2) 
 pwm.setServoAngle(0,180)
 time.sleep(2) 
-pwm.setServoAngle(,90)
+pwm.setServoAngle(0,90)
 time.sleep(2) 
 
 #Look up and straight(camera cannot point down, 20 is straight ahead, 145 is straight up)
