@@ -200,47 +200,55 @@ class CameraServos(SmoothServoGroup):
         self.tilt = servo.Servo(self.pca.channels[0])  # vertical
         self.pan = servo.Servo(self.pca.channels[1])   # horizontal
 
-        # correct "straight ahead"
-        self.tilt_pos = 20
-        self.pan_pos = 90
+        # ==== TUNE THESE FOR YOUR ROBOT ====
+        self.PAN_CENTER = 120       # change until straight ahead
+        self.TILT_FORWARD = 35      # change until level/straight ahead
+        self.TILT_UP_MAX = 90       # reduce so camera does not hit robot
+        self.PAN_LEFT = 60
+        self.PAN_RIGHT = 180
+        self.TILT_MIN = 20
+        # ===================================
 
-        self.tilt.angle = self.tilt_pos
+        self.pan_pos = self.PAN_CENTER
+        self.tilt_pos = self.TILT_FORWARD
+
         self.pan.angle = self.pan_pos
+        self.tilt.angle = self.tilt_pos
 
     def center(self, delay=0.02):
-        self.move_smooth(self.pan, self.pan_pos, 90, delay)
-        self.pan_pos = 90
+        self.move_smooth(self.pan, self.pan_pos, self.PAN_CENTER, delay)
+        self.pan_pos = self.PAN_CENTER
 
-        self.move_smooth(self.tilt, self.tilt_pos, 20, delay)
-        self.tilt_pos = 20
+        self.move_smooth(self.tilt, self.tilt_pos, self.TILT_FORWARD, delay)
+        self.tilt_pos = self.TILT_FORWARD
 
     def look_left(self, delay=0.02):
-        self.move_smooth(self.pan, self.pan_pos, 0, delay)
-        self.pan_pos = 0
+        self.move_smooth(self.pan, self.pan_pos, self.PAN_LEFT, delay)
+        self.pan_pos = self.PAN_LEFT
 
     def look_right(self, delay=0.02):
-        self.move_smooth(self.pan, self.pan_pos, 180, delay)
-        self.pan_pos = 180
+        self.move_smooth(self.pan, self.pan_pos, self.PAN_RIGHT, delay)
+        self.pan_pos = self.PAN_RIGHT
 
     def look_straight(self, delay=0.02):
-        self.move_smooth(self.pan, self.pan_pos, 90, delay)
-        self.pan_pos = 90
+        self.move_smooth(self.pan, self.pan_pos, self.PAN_CENTER, delay)
+        self.pan_pos = self.PAN_CENTER
 
     def look_up(self, delay=0.02):
-        self.move_smooth(self.tilt, self.tilt_pos, 145, delay)
-        self.tilt_pos = 145
+        self.move_smooth(self.tilt, self.tilt_pos, self.TILT_UP_MAX, delay)
+        self.tilt_pos = self.TILT_UP_MAX
 
     def look_forward(self, delay=0.02):
-        self.move_smooth(self.tilt, self.tilt_pos, 20, delay)
-        self.tilt_pos = 20
+        self.move_smooth(self.tilt, self.tilt_pos, self.TILT_FORWARD, delay)
+        self.tilt_pos = self.TILT_FORWARD
 
     def set_pan(self, angle, delay=0.02):
-        angle = max(0, min(180, angle))
+        angle = max(self.PAN_LEFT, min(self.PAN_RIGHT, angle))
         self.move_smooth(self.pan, self.pan_pos, angle, delay)
         self.pan_pos = angle
 
     def set_tilt(self, angle, delay=0.02):
-        angle = max(15, min(145, angle))  # protect servo
+        angle = max(self.TILT_MIN, min(self.TILT_UP_MAX, angle))
         self.move_smooth(self.tilt, self.tilt_pos, angle, delay)
         self.tilt_pos = angle
 
