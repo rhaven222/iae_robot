@@ -52,23 +52,23 @@ time.sleep(4)
 
 # Test upper arm joint
 print("Testing arm joint on channel 14")
-print("Move joint one way - UP")
+print("Move joint one way - DOWN")
 #move up
 arm_mid.angle = 60
 time.sleep(4)
 #move down
-print("Move joint other way - DOWN")
+print("Move joint other way - UP")
 arm_mid.angle = 120
 time.sleep(4)
 
 # Test base arm joint
 print("Testing base joint on channel 15")
-print("Move base one way - UP")
+print("Move base one way - DOWN")
 #move up
 arm_base.angle = 60
 time.sleep(4)
 #Move down
-print("Move base other way - DOWN")
+print("Move base other way - UP")
 arm_base.angle = 120
 time.sleep(4)
 
