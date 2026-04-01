@@ -6,7 +6,7 @@ from controller_map import PS5Controller
 robot = Robot()
 controller = PS5Controller()
 
-CAMERA_STEP = 2.0
+CAMERA_STEP = 6.0
 ARM_STEP = 2.0
 
 try:
