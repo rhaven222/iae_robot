@@ -1,7 +1,6 @@
 
 import time
 
-from matplotlib.pyplot import step
 from gpiozero import PWMOutputDevice, DigitalOutputDevice
 from board import SCL, SDA
 import busio
