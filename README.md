@@ -34,4 +34,4 @@ You can check whether the controller is detected by:
 ```bash
 ls /dev/input
 ```
-If js0, js1 and new items appear, the controller is detected
+If js0 and js1 appear, the controller is detected
