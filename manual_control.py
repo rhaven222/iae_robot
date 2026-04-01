@@ -7,7 +7,8 @@ robot = Robot()
 controller = PS5Controller()
 
 CAMERA_STEP = 8.0
-ARM_STEP = 2.0
+ARM_STEP = 3.0
+MID_STEP = 3.0
 
 try:
     while True:
@@ -24,13 +25,20 @@ try:
         if cam_y != 0:
             robot.camera.step_tilt(cam_y * CAMERA_STEP)
 
-        # Arm up/down with D-pad
+        # Arm with D-pad
         dpad_x, dpad_y = controller.get_dpad()
 
+        # base servo
         if dpad_y == 1:
             robot.arm.step_up(ARM_STEP)
         elif dpad_y == -1:
             robot.arm.step_down(ARM_STEP)
+
+        # middle servo
+        if dpad_x == -1:
+            robot.arm.mid_down_step(MID_STEP)
+        elif dpad_x == 1:
+            robot.arm.mid_up_step(MID_STEP)
 
         # Claw: closed only while R2 is held
         if controller.r2_pressed():

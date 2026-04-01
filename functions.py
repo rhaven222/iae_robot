@@ -1,5 +1,7 @@
 
 import time
+
+from matplotlib.pyplot import step
 from gpiozero import PWMOutputDevice, DigitalOutputDevice
 from board import SCL, SDA
 import busio
@@ -211,17 +213,19 @@ class Arm(SmoothServoGroup):
         self.move_smooth(self.base, self.base_pos, angle, delay)
         self.base_pos = angle
 
+    def mid_up_step(self, step=2):
+        self.set_mid(self.mid_pos + step, delay=0.002)
+
+    def mid_down_step(self, step=2):
+        self.set_mid(self.mid_pos - step, delay=0.002)
+
     def step_up(self, step=2):
-        new_base = min(180, self.base_pos + step)
-        new_mid = min(180, self.mid_pos + step)
-        self.set_base(new_base, delay=0.01)
-        self.set_mid(new_mid, delay=0.01)
+        self.set_base(self.base_pos + step, delay=0.002)
 
     def step_down(self, step=2):
-        new_base = max(0, self.base_pos - step)
-        new_mid = max(0, self.mid_pos - step)
-        self.set_base(new_base, delay=0.01)
-        self.set_mid(new_mid, delay=0.01)
+        self.set_base(self.base_pos - step, delay=0.002)
+
+    
 
     def rotate_left_step(self, step=2):
         self.set_orient(self.orient_pos - step, delay=0.01)
@@ -297,6 +301,22 @@ class CameraServos(SmoothServoGroup):
 
     def step_tilt(self, step):
         self.set_tilt(self.tilt_pos + step, delay=0.002)
+    
+    def set_pan_direct(self, angle):
+        angle = max(self.PAN_LEFT, min(self.PAN_RIGHT, angle))
+        self.pan.angle = angle
+        self.pan_pos = angle
+
+    def set_tilt_direct(self, angle):
+        angle = max(self.TILT_MIN, min(self.TILT_UP_MAX, angle))
+        self.tilt.angle = angle
+        self.tilt_pos = angle
+
+    def step_pan(self, step):
+        self.set_pan_direct(self.pan_pos + step)
+
+    def step_tilt(self, step):
+        self.set_tilt_direct(self.tilt_pos + step)
 
 
 

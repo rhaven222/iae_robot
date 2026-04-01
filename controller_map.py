@@ -17,10 +17,10 @@ class PS5Controller:
     L1_BUTTON = 4
     R1_BUTTON = 5
 
-    DEADZONE_LEFT_X = 0.08
-    DEADZONE_LEFT_Y = 0.08
-    DEADZONE_RIGHT_X = 0.08
-    DEADZONE_RIGHT_Y = 0.08
+    DEADZONE_LEFT_X = 0.12
+    DEADZONE_LEFT_Y = 0.12
+    DEADZONE_RIGHT_X = 0.12
+    DEADZONE_RIGHT_Y = 0.12
 
     def __init__(self, joystick_index=0):
         pygame.init()
@@ -60,24 +60,18 @@ class PS5Controller:
         forward = -ly
         turn = lx
 
-        left_motor = self.clamp(forward + turn)
-        right_motor = self.clamp(forward - turn)
+        left_motor = self.clamp(forward - turn)
+        right_motor = self.clamp(forward + turn)
 
         return left_motor, right_motor
 
     def get_camera(self):
         self.pump()
 
-        rx = self.apply_deadzone(
-            self.js.get_axis(self.RIGHT_X),
-            self.DEADZONE_RIGHT_X
-        )
-        ry = self.apply_deadzone(
-            self.js.get_axis(self.RIGHT_Y),
-            self.DEADZONE_RIGHT_Y
-        )
+        rx = self.apply_deadzone(self.js.get_axis(self.RIGHT_X), self.DEADZONE_RIGHT_X)
+        ry = self.apply_deadzone(self.js.get_axis(self.RIGHT_Y), self.DEADZONE_RIGHT_Y)
 
-        return rx, -ry
+        return -rx, -ry
 
     def get_dpad(self):
         self.pump()
