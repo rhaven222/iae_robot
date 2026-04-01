@@ -275,6 +275,10 @@ class CameraServos(SmoothServoGroup):
     PAN_CENTER = 82
     PAN_RIGHT = 3.5
 
+    PAN_MIN = 3.5
+    PAN_CENTER = 82
+    PAN_MAX = 180
+
     TILT_MIN = 15
     TILT_STRAIGHT = 15
     TILT_UP_MAX = 100
@@ -304,7 +308,7 @@ class CameraServos(SmoothServoGroup):
     # for autonomous / presets
     # -----------------------
     def set_pan(self, angle, delay=0.02):
-        angle = max(self.PAN_LEFT, min(self.PAN_RIGHT, angle))
+        angle = max(self.PAN_MIN, min(self.PAN_MAX, angle))
         self.move_smooth(self.pan, self.pan_pos, angle, delay)
         self.pan_pos = angle
 
@@ -339,7 +343,7 @@ class CameraServos(SmoothServoGroup):
     # for controller / teleop
     # -----------------------
     def set_pan_direct(self, angle):
-        angle = max(self.PAN_LEFT, min(self.PAN_RIGHT, angle))
+        angle = max(self.PAN_MIN, min(self.PAN_MAX, angle))
         self.pan.angle = angle
         self.pan_pos = angle
 
@@ -353,7 +357,7 @@ class CameraServos(SmoothServoGroup):
     # for controller use
     # -----------------------
     def step_pan(self, step=2):
-        self.set_pan_direct(self.pan_pos + step)
+        angle = max(self.PAN_MIN, min(self.PAN_MAX, angle))
 
     def step_tilt(self, step=2):
         self.set_tilt_direct(self.tilt_pos + step)
