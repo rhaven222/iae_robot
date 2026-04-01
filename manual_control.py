@@ -2,7 +2,6 @@ import time
 from functions import Robot
 from controller_map import PS5Controller
 
-
 robot = Robot()
 controller = PS5Controller()
 
@@ -36,10 +35,8 @@ def get_drive_label(forward, turn, move_thresh=0.15, turn_thresh=0.15):
     return "Stopped"
 
 last_drive_label = None
-
 arm_moving = False
 camera_moving = False
-
 
 try:
     while True:
@@ -49,7 +46,7 @@ try:
         # DRIVE
         # -----------------------
         forward = -state["ly"]
-        turn = -state["lx"]   # change sign here if needed for your robot
+        turn = -state["lx"]
 
         left_motor, right_motor = controller.get_drive()
         robot.motors.set_tank(left_motor, right_motor)
@@ -83,37 +80,36 @@ try:
         # ARM
         # -----------------------
         hat_x, hat_y = state["hat"]
-
         arm_is_moving = False
 
         if hat_y == 1:
-            robot.arm.step_up()
+            robot.arm.step_up(ARM_STEP)
             arm_is_moving = True
         elif hat_y == -1:
-            robot.arm.step_down()
+            robot.arm.step_down(ARM_STEP)
             arm_is_moving = True
 
         if hat_x == -1:
-            robot.arm.mid_down_step()
+            robot.arm.mid_down_step(MID_STEP)
             arm_is_moving = True
         elif hat_x == 1:
-            robot.arm.mid_up_step()
+            robot.arm.mid_up_step(MID_STEP)
             arm_is_moving = True
 
         if state["l1"]:
-            robot.arm.rotate_left_step()
+            robot.arm.rotate_left_step(ARM_STEP)
             arm_is_moving = True
 
         if state["r1"]:
-            robot.arm.rotate_right_step()
+            robot.arm.rotate_right_step(ARM_STEP)
             arm_is_moving = True
 
-        if controller.r2_pressed():
-            if robot.arm.claw_pos != 110:
+        if state["r2"] > 0:
+            if robot.arm.claw_pos != 120:
                 robot.arm.close_claw()
                 arm_is_moving = True
         else:
-            if robot.arm.claw_pos != 40:
+            if robot.arm.claw_pos != 20:
                 robot.arm.open_claw()
                 arm_is_moving = True
 
@@ -131,8 +127,6 @@ try:
             arm_moving = False
 
         time.sleep(0.03)
-
-
 
 except KeyboardInterrupt:
     print("Stopping robot...")
