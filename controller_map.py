@@ -60,8 +60,11 @@ class PS5Controller:
         forward = -ly
         turn = lx
 
-        left_motor = self.clamp(forward - turn)
-        right_motor = self.clamp(forward + turn)
+        DRIVE_SPEED = 0.6
+        TURN_SPEED = 0.4
+
+        left_motor = self.clamp(forward * DRIVE_SPEED + turn * TURN_SPEED)
+        right_motor = self.clamp(forward * DRIVE_SPEED - turn * TURN_SPEED)
 
         return left_motor, right_motor
 

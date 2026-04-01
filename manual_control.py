@@ -10,52 +10,129 @@ CAMERA_STEP = 8.0
 ARM_STEP = 3.0
 MID_STEP = 3.0
 
+def get_drive_label(forward, turn, move_thresh=0.15, turn_thresh=0.15):
+    if abs(forward) < move_thresh and abs(turn) < turn_thresh:
+        return "Stopped"
+
+    if forward > move_thresh:
+        if turn > turn_thresh:
+            return "Forward left"
+        elif turn < -turn_thresh:
+            return "Forward right"
+        return "Forward"
+
+    if forward < -move_thresh:
+        if turn > turn_thresh:
+            return "Reverse left"
+        elif turn < -turn_thresh:
+            return "Reverse right"
+        return "Reverse"
+
+    if turn > turn_thresh:
+        return "Turn left"
+    if turn < -turn_thresh:
+        return "Turn right"
+
+    return "Stopped"
+
+last_drive_label = None
+
+arm_moving = False
+camera_moving = False
+
+
 try:
     while True:
-        # Drive
+        state = controller.get_state()
+
+        # -----------------------
+        # DRIVE
+        # -----------------------
+        forward = -state["ly"]
+        turn = -state["lx"]   # change sign here if needed for your robot
+
         left_motor, right_motor = controller.get_drive()
         robot.motors.set_tank(left_motor, right_motor)
 
-        # Camera
-        cam_x, cam_y = controller.get_camera()
+        drive_label = get_drive_label(forward, turn)
+        if drive_label != last_drive_label:
+            if drive_label != "Stopped":
+                print(drive_label)
+            last_drive_label = drive_label
 
-        if cam_x != 0:
-            robot.camera.step_pan(cam_x * CAMERA_STEP)
+        # -----------------------
+        # CAMERA
+        # -----------------------
+        camera_is_moving = (state["rx"] != 0 or state["ry"] != 0)
 
-        if cam_y != 0:
-            robot.camera.step_tilt(cam_y * CAMERA_STEP)
+        if camera_is_moving and not camera_moving:
+            print("Moving camera")
+            camera_moving = True
 
-        # Arm with D-pad
-        dpad_x, dpad_y = controller.get_dpad()
+        if state["rx"] != 0:
+            robot.camera.step_pan(-state["rx"] * CAMERA_STEP)
 
-        # base servo
-        if dpad_y == 1:
-            robot.arm.step_up(ARM_STEP)
-        elif dpad_y == -1:
-            robot.arm.step_down(ARM_STEP)
+        if state["ry"] != 0:
+            robot.camera.step_tilt(-state["ry"] * CAMERA_STEP)
 
-        # middle servo
-        if dpad_x == -1:
-            robot.arm.mid_down_step(MID_STEP)
-        elif dpad_x == 1:
-            robot.arm.mid_up_step(MID_STEP)
+        if not camera_is_moving and camera_moving:
+            print(f"Camera angles: pan={robot.camera.pan_pos:.1f}, tilt={robot.camera.tilt_pos:.1f}")
+            camera_moving = False
 
-        # Claw: closed only while R2 is held
+        # -----------------------
+        # ARM
+        # -----------------------
+        hat_x, hat_y = state["hat"]
+
+        arm_is_moving = False
+
+        if hat_y == 1:
+            robot.arm.step_up()
+            arm_is_moving = True
+        elif hat_y == -1:
+            robot.arm.step_down()
+            arm_is_moving = True
+
+        if hat_x == -1:
+            robot.arm.mid_down_step()
+            arm_is_moving = True
+        elif hat_x == 1:
+            robot.arm.mid_up_step()
+            arm_is_moving = True
+
+        if state["l1"]:
+            robot.arm.rotate_left_step()
+            arm_is_moving = True
+
+        if state["r1"]:
+            robot.arm.rotate_right_step()
+            arm_is_moving = True
+
         if controller.r2_pressed():
             if robot.arm.claw_pos != 110:
                 robot.arm.close_claw()
+                arm_is_moving = True
         else:
             if robot.arm.claw_pos != 40:
                 robot.arm.open_claw()
+                arm_is_moving = True
 
-        # Arm rotate
-        if controller.l1_pressed():
-            robot.arm.rotate_left_step(ARM_STEP)
+        if arm_is_moving and not arm_moving:
+            print("Moving arm")
+            arm_moving = True
 
-        if controller.r1_pressed():
-            robot.arm.rotate_right_step(ARM_STEP)
+        if not arm_is_moving and arm_moving:
+            print(
+                f"Arm angles: base={robot.arm.base_pos:.1f}, "
+                f"mid={robot.arm.mid_pos:.1f}, "
+                f"orient={robot.arm.orient_pos:.1f}, "
+                f"claw={robot.arm.claw_pos:.1f}"
+            )
+            arm_moving = False
 
-        time.sleep(0.05)
+        time.sleep(0.03)
+
+
 
 except KeyboardInterrupt:
     print("Stopping robot...")
