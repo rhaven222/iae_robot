@@ -64,6 +64,29 @@ class Motors:
         time.sleep(duration)
         self.stop()
 
+    def set_tank(self, left_speed, right_speed):
+        left_speed = max(-1.0, min(1.0, left_speed))
+        right_speed = max(-1.0, min(1.0, right_speed))
+
+        # Left motor
+        if left_speed > 0:
+            self.dir1.off()
+            self.pwm1.value = left_speed
+        elif left_speed < 0:
+            self.dir1.on()
+            self.pwm1.value = abs(left_speed)
+        else:
+            self.pwm1.value = 0
+
+        # Right motor
+        if right_speed > 0:
+            self.dir2.on()
+            self.pwm2.value = right_speed
+        elif right_speed < 0:
+            self.dir2.off()
+            self.pwm2.value = abs(right_speed)
+        else:
+            self.pwm2.value = 0
 
 
 # BASE SERVO CLASS
@@ -188,6 +211,24 @@ class Arm(SmoothServoGroup):
         self.move_smooth(self.base, self.base_pos, angle, delay)
         self.base_pos = angle
 
+    def step_up(self, step=2):
+        new_base = min(180, self.base_pos + step)
+        new_mid = min(180, self.mid_pos + step)
+        self.set_base(new_base, delay=0.01)
+        self.set_mid(new_mid, delay=0.01)
+
+    def step_down(self, step=2):
+        new_base = max(0, self.base_pos - step)
+        new_mid = max(0, self.mid_pos - step)
+        self.set_base(new_base, delay=0.01)
+        self.set_mid(new_mid, delay=0.01)
+
+    def rotate_left_step(self, step=2):
+        self.set_orient(self.orient_pos - step, delay=0.01)
+
+    def rotate_right_step(self, step=2):
+        self.set_orient(self.orient_pos + step, delay=0.01)
+
 
 
 # CAMERA SERVO CLASS
@@ -250,6 +291,12 @@ class CameraServos(SmoothServoGroup):
         angle = max(self.TILT_MIN, min(self.TILT_UP_MAX, angle))
         self.move_smooth(self.tilt, self.tilt_pos, angle, delay)
         self.tilt_pos = angle
+
+    def step_pan(self, step):
+        self.set_pan(self.pan_pos + step, delay=0.01)
+
+    def step_tilt(self, step):
+        self.set_tilt(self.tilt_pos + step, delay=0.01)
 
 
 
