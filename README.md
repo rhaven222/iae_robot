@@ -23,13 +23,15 @@ I2C = Enable
 ssh =Enable
 
 Using a Controller:
-To use a controller, first you must conenct the device via bluetooth or usb.
-Then
+
+
+
 ```bash
 sudo apt install python3-pygame joystick
 ```
+Conenct the controller via bluetooth or usb.
 You can check whether the controller is detected by:
 ```bash
 ls /dev/input
 ```
-If js0 and js1 and new items appear, the controller is detected
+If js0, js1 and new items appear, the controller is detected
