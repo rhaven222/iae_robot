@@ -158,11 +158,11 @@ class Arm(SmoothServoGroup):
     def center(self):
         self.set_all(90, 90, 90, 90)
 
-    def open_claw(self, delay=0.02):
+    def open_claw(self, delay=0.002):
         self.move_smooth(self.claw, self.claw_pos, 40, delay)
         self.claw_pos = 40
 
-    def close_claw(self, delay=0.02):
+    def close_claw(self, delay=0.002):
         self.move_smooth(self.claw, self.claw_pos, 110, delay)
         self.claw_pos = 110
 
