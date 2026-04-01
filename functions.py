@@ -267,14 +267,7 @@ class Arm(SmoothServoGroup):
 
 
 
-# CAMERA SERVO CLASS
-
-
 class CameraServos(SmoothServoGroup):
-    PAN_LEFT = 180
-    PAN_CENTER = 82
-    PAN_RIGHT = 3.5
-
     PAN_MIN = 3.5
     PAN_CENTER = 82
     PAN_MAX = 180
@@ -294,19 +287,12 @@ class CameraServos(SmoothServoGroup):
 
         self.center()
 
-    # -----------------------
-    # BASIC POSITIONING
-    # -----------------------
     def center(self):
         self.pan.angle = self.PAN_CENTER
         self.tilt.angle = self.TILT_STRAIGHT
         self.pan_pos = self.PAN_CENTER
         self.tilt_pos = self.TILT_STRAIGHT
 
-    # -----------------------
-    # SMOOTH SETTERS
-    # for autonomous / presets
-    # -----------------------
     def set_pan(self, angle, delay=0.02):
         angle = max(self.PAN_MIN, min(self.PAN_MAX, angle))
         self.move_smooth(self.pan, self.pan_pos, angle, delay)
@@ -317,20 +303,15 @@ class CameraServos(SmoothServoGroup):
         self.move_smooth(self.tilt, self.tilt_pos, angle, delay)
         self.tilt_pos = angle
 
-
-    # -----------------------
-    # SMOOTH PRESET ACTIONS
-    # for autonomous use
-    # -----------------------
     def look_center(self, delay=0.02):
         self.set_pan(self.PAN_CENTER, delay)
         self.set_tilt(self.TILT_STRAIGHT, delay)
 
     def look_left(self, delay=0.02):
-        self.set_pan(self.PAN_LEFT, delay)
+        self.set_pan(self.PAN_MAX, delay)
 
     def look_right(self, delay=0.02):
-        self.set_pan(self.PAN_RIGHT, delay)
+        self.set_pan(self.PAN_MIN, delay)
 
     def look_up(self, delay=0.02):
         self.set_tilt(self.TILT_UP_MAX, delay)
@@ -338,10 +319,6 @@ class CameraServos(SmoothServoGroup):
     def look_straight(self, delay=0.02):
         self.set_tilt(self.TILT_STRAIGHT, delay)
 
-    # -----------------------
-    # DIRECT SETTERS
-    # for controller / teleop
-    # -----------------------
     def set_pan_direct(self, angle):
         angle = max(self.PAN_MIN, min(self.PAN_MAX, angle))
         self.pan.angle = angle
@@ -352,16 +329,11 @@ class CameraServos(SmoothServoGroup):
         self.tilt.angle = angle
         self.tilt_pos = angle
 
-    # -----------------------
-    # DIRECT STEP ACTIONS
-    # for controller use
-    # -----------------------
     def step_pan(self, step=2):
-        angle = max(self.PAN_MIN, min(self.PAN_MAX, angle))
+        self.set_pan_direct(self.pan_pos + step)
 
     def step_tilt(self, step=2):
         self.set_tilt_direct(self.tilt_pos + step)
-
 
 
 # ROBOT SYSTEM CLASS
