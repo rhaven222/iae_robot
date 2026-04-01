@@ -271,13 +271,13 @@ class Arm(SmoothServoGroup):
 
 
 class CameraServos(SmoothServoGroup):
-    PAN_LEFT = 0
-    PAN_CENTER = 90
-    PAN_RIGHT = 180
+    PAN_LEFT = 180
+    PAN_CENTER = 82
+    PAN_RIGHT = 3.5
 
     TILT_MIN = 15
-    TILT_STRAIGHT = 20
-    TILT_UP_MAX = 145
+    TILT_STRAIGHT = 15
+    TILT_UP_MAX = 100
 
     def __init__(self, pca):
         super().__init__(pca)
@@ -347,7 +347,7 @@ class CameraServos(SmoothServoGroup):
         angle = max(self.TILT_MIN, min(self.TILT_UP_MAX, angle))
         self.tilt.angle = angle
         self.tilt_pos = angle
-        
+
     # -----------------------
     # DIRECT STEP ACTIONS
     # for controller use
