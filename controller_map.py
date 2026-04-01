@@ -76,8 +76,8 @@ class PS5Controller:
         DRIVE_SPEED = 0.6
         TURN_SPEED = 0.4
 
-        left_motor = self.clamp(forward * DRIVE_SPEED + turn * TURN_SPEED)
-        right_motor = self.clamp(forward * DRIVE_SPEED - turn * TURN_SPEED)
+        left_motor = self.clamp(forward * DRIVE_SPEED - turn * TURN_SPEED)
+        right_motor = self.clamp(forward * DRIVE_SPEED + turn * TURN_SPEED)
 
         return left_motor, right_motor
 
