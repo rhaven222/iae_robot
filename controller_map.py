@@ -44,6 +44,19 @@ class PS5Controller:
     @staticmethod
     def clamp(value, low=-1.0, high=1.0):
         return max(low, min(high, value))
+    
+    def get_state(self):
+        self.pump()
+        return {
+            "lx": self.apply_deadzone(self.js.get_axis(self.LEFT_X), self.DEADZONE_LEFT_X),
+            "ly": self.apply_deadzone(self.js.get_axis(self.LEFT_Y), self.DEADZONE_LEFT_Y),
+            "rx": self.apply_deadzone(self.js.get_axis(self.RIGHT_X), self.DEADZONE_RIGHT_X),
+            "ry": self.apply_deadzone(self.js.get_axis(self.RIGHT_Y), self.DEADZONE_RIGHT_Y),
+            "r2": self.js.get_axis(self.R2_AXIS),
+            "hat": self.js.get_hat(self.DPAD_HAT),
+            "l1": bool(self.js.get_button(self.L1_BUTTON)),
+            "r1": bool(self.js.get_button(self.R1_BUTTON)),
+        }
 
     def get_drive(self):
         self.pump()
