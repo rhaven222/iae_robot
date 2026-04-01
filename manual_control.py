@@ -7,8 +7,8 @@ robot = Robot()
 controller = PS5Controller()
 
 CAMERA_STEP = 8.0
-ARM_STEP = 3.0
-MID_STEP = 3.0
+ARM_STEP = 4.0
+MID_STEP = 4.0
 
 def get_drive_label(forward, turn, move_thresh=0.15, turn_thresh=0.15):
     if abs(forward) < move_thresh and abs(turn) < turn_thresh:

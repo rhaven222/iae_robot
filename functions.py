@@ -159,12 +159,12 @@ class Arm(SmoothServoGroup):
         self.set_all(90, 90, 90, 90)
 
     def open_claw(self, delay=0.002):
-        self.move_smooth(self.claw, self.claw_pos, 40, delay)
-        self.claw_pos = 40
+        self.move_smooth(self.claw, self.claw_pos, 20, delay)
+        self.claw_pos = 20
 
     def close_claw(self, delay=0.002):
-        self.move_smooth(self.claw, self.claw_pos, 110, delay)
-        self.claw_pos = 110
+        self.move_smooth(self.claw, self.claw_pos, 120, delay)
+        self.claw_pos = 120
 
     def rotate_left(self, delay=0.02):
         self.move_smooth(self.orient, self.orient_pos, 40, delay)
@@ -202,6 +202,11 @@ class Arm(SmoothServoGroup):
         self.move_smooth(self.orient, self.orient_pos, angle, delay)
         self.orient_pos = angle
 
+    def set_orient_direct(self, angle):
+        angle = max(0, min(180, angle))
+        self.orient.angle = angle
+        self.orient_pos = angle
+
     def set_mid(self, angle, delay=0.02):
         angle = max(0, min(180, angle))
         self.move_smooth(self.mid, self.mid_pos, angle, delay)
@@ -226,11 +231,11 @@ class Arm(SmoothServoGroup):
 
     
 
-    def rotate_left_step(self, step=2):
-        self.set_orient(self.orient_pos - step, delay=0.01)
+    def rotate_left_step(self, step=4):
+        self.set_orient_direct(self.orient_pos - step)
 
-    def rotate_right_step(self, step=2):
-        self.set_orient(self.orient_pos + step, delay=0.01)
+    def rotate_right_step(self, step=4):
+        self.set_orient_direct(self.orient_pos + step)
 
 
 
