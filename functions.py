@@ -293,10 +293,10 @@ class CameraServos(SmoothServoGroup):
         self.tilt_pos = angle
 
     def step_pan(self, step):
-        self.set_pan(self.pan_pos + step, delay=0.01)
+        self.set_pan(self.pan_pos + step, delay=0.002)
 
     def step_tilt(self, step):
-        self.set_tilt(self.tilt_pos + step, delay=0.01)
+        self.set_tilt(self.tilt_pos + step, delay=0.002)
 
 
 

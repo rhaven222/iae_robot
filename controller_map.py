@@ -95,5 +95,13 @@ class PS5Controller:
         self.pump()
         return bool(self.js.get_button(self.R1_BUTTON))
 
+    def x_pressed(self):
+        self.pump()
+        return bool(self.js.get_button(self.X_BUTTON))
+
+    def triangle_pressed(self):
+        self.pump()
+        return bool(self.js.get_button(self.TRIANGLE_BUTTON))
+
     def close(self):
         pygame.quit()
