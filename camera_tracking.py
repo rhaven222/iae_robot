@@ -121,7 +121,7 @@ try:
         tilt_step = clamp(tilt_step, -MAX_TILT_STEP, MAX_TILT_STEP)
 
         new_pan = round(robot.camera.pan_pos - pan_step)
-        new_tilt = round(robot.camera.tilt_pos + tilt_step)
+        new_tilt = round(robot.camera.tilt_pos - tilt_step)
 
         new_pan = clamp(new_pan, robot.camera.PAN_MIN, robot.camera.PAN_MAX)
         new_tilt = clamp(new_tilt, robot.camera.TILT_MIN, robot.camera.TILT_MAX)
@@ -132,7 +132,7 @@ try:
 
         if abs(new_tilt - robot.camera.tilt_pos) >= 1:
             robot.camera.set_tilt_direct(new_tilt)
-            
+
         # -------------------------------
         # SMOOTH SERVO MOVEMENT
         # -------------------------------
@@ -141,6 +141,23 @@ try:
 
         if abs(new_tilt - robot.camera.tilt_pos) >= 2:
             robot.camera.set_tilt(new_tilt, delay=0.01)
+
+        # -------------------------------
+        # MOTOR ASSIST: turn base only when pan gets near limits
+        # -------------------------------
+        TURN_SPEED = 0.28
+        PAN_EDGE_BUFFER = 18
+
+        if robot.camera.pan_pos <= robot.camera.PAN_MIN + PAN_EDGE_BUFFER and error_x < -X_DEADBAND:
+            # object is too far left, camera is near left limit
+            robot.motors.set_tank(-TURN_SPEED, TURN_SPEED)
+
+        elif robot.camera.pan_pos >= robot.camera.PAN_MAX - PAN_EDGE_BUFFER and error_x > X_DEADBAND:
+            # object is too far right, camera is near right limit
+            robot.motors.set_tank(TURN_SPEED, -TURN_SPEED)
+
+        else:
+            robot.stop()
 
         robot.stop()
 
