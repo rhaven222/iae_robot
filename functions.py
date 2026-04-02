@@ -275,6 +275,7 @@ class CameraServos(SmoothServoGroup):
     TILT_MIN = 15
     TILT_STRAIGHT = 15
     TILT_UP_MAX = 100
+    TILT_MAX = TILT_UP_MAX
 
     def __init__(self, pca):
         super().__init__(pca)
