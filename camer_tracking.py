@@ -182,8 +182,7 @@ try:
                 robot.camera.set_pan(round(next_pan))
                 time.sleep(0.05)
 
-        cv2.imshow("Color Tracking", frame)
-        cv2.imshow("Mask", mask)
+        
 
         key = cv2.waitKey(1) & 0xFF
         if key == ord('q'):
