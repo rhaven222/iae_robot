@@ -348,6 +348,6 @@ class Robot:
         self.motors = Motors()
         self.arm = Arm(self.servo_hat.pca)
         self.camera = CameraServos(self.servo_hat.pca)
-        
+
     def stop(self):
-        self.drive.stop()
+        self.Motors.stop()
