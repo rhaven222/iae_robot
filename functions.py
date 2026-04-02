@@ -294,11 +294,13 @@ class CameraServos(SmoothServoGroup):
         self.tilt_pos = self.TILT_STRAIGHT
 
     def set_pan(self, angle, delay=0.02):
+        angle = round(angle)
         angle = max(self.PAN_MIN, min(self.PAN_MAX, angle))
         self.move_smooth(self.pan, self.pan_pos, angle, delay)
         self.pan_pos = angle
 
     def set_tilt(self, angle, delay=0.02):
+        angle = round(angle)
         angle = max(self.TILT_MIN, min(self.TILT_UP_MAX, angle))
         self.move_smooth(self.tilt, self.tilt_pos, angle, delay)
         self.tilt_pos = angle
@@ -320,11 +322,13 @@ class CameraServos(SmoothServoGroup):
         self.set_tilt(self.TILT_STRAIGHT, delay)
 
     def set_pan_direct(self, angle):
+        angle = round(angle)
         angle = max(self.PAN_MIN, min(self.PAN_MAX, angle))
         self.pan.angle = angle
         self.pan_pos = angle
 
     def set_tilt_direct(self, angle):
+        angle = round(angle)
         angle = max(self.TILT_MIN, min(self.TILT_UP_MAX, angle))
         self.tilt.angle = angle
         self.tilt_pos = angle
