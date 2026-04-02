@@ -143,7 +143,7 @@ try:
 
         # Adjust signs here if motion is backwards
         new_pan = round(robot.camera.pan_pos - pan_step)
-        new_tilt = round(robot.camera.tilt_pos + tilt_step)
+        new_tilt = round(robot.camera.tilt_pos - tilt_step)
 
         new_pan = clamp(new_pan, robot.camera.PAN_MIN, robot.camera.PAN_MAX)
         new_tilt = clamp(new_tilt, robot.camera.TILT_MIN, robot.camera.TILT_MAX)
