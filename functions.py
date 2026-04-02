@@ -350,4 +350,4 @@ class Robot:
         self.camera = CameraServos(self.servo_hat.pca)
 
     def stop(self):
-        self.Motors.stop()
+        self.motors.stop()
