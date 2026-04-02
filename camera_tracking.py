@@ -11,20 +11,18 @@ UPPER_BLUE = np.array([130, 255, 255])
 
 MIN_CONTOUR_AREA = 1200
 
-X_DEADBAND = 40
-Y_DEADBAND = 30
+X_DEADBAND = 25
+Y_DEADBAND = 15
 
-KP_PAN = 0.02
-KP_TILT = 0.02
+KP_PAN = 0.05
+KP_TILT = 0.06
 
-MAX_PAN_STEP = 3
-MAX_TILT_STEP = 2
+MAX_PAN_STEP = 6
+MAX_TILT_STEP = 5
 
-LOOP_DELAY = 0.07
+LOOP_DELAY = 0.03
 
-# smoothing factor (0 = very smooth, 1 = raw)
-ALPHA = 0.2
-
+ALPHA = 0.35
 # -------------------------------
 # INIT
 # -------------------------------
@@ -128,6 +126,13 @@ try:
         new_pan = clamp(new_pan, robot.camera.PAN_MIN, robot.camera.PAN_MAX)
         new_tilt = clamp(new_tilt, robot.camera.TILT_MIN, robot.camera.TILT_MAX)
 
+        # move if changed by at least 1 degree
+        if abs(new_pan - robot.camera.pan_pos) >= 1:
+            robot.camera.set_pan_direct(new_pan)
+
+        if abs(new_tilt - robot.camera.tilt_pos) >= 1:
+            robot.camera.set_tilt_direct(new_tilt)
+            
         # -------------------------------
         # SMOOTH SERVO MOVEMENT
         # -------------------------------
