@@ -133,20 +133,25 @@ try:
             robot.camera.set_tilt_direct(new_tilt)
 
         # -------------------------------
-        # MOTOR ASSIST: turn base only when pan gets near limits
+        # MOTOR ASSIST: turn before camera reaches the edge
         # -------------------------------
-        TURN_SPEED = 0.28
-        PAN_EDGE_BUFFER = 18
+        TURN_SPEED = 0.35
+        PAN_TURN_OFFSET = 20      # how far pan must be from center before base helps
+        ERROR_TURN_THRESHOLD = 80 # how far object is from image center before base helps
 
-        if robot.camera.pan_pos <= robot.camera.PAN_MIN + PAN_EDGE_BUFFER and error_x < -X_DEADBAND:
+        pan_from_center = robot.camera.pan_pos - robot.camera.PAN_CENTER
+
+        if error_x < -ERROR_TURN_THRESHOLD and pan_from_center < -PAN_TURN_OFFSET:
+            print("TURN LEFT")
             robot.motors.set_tank(-TURN_SPEED, TURN_SPEED)
 
-        elif robot.camera.pan_pos >= robot.camera.PAN_MAX - PAN_EDGE_BUFFER and error_x > X_DEADBAND:
+        elif error_x > ERROR_TURN_THRESHOLD and pan_from_center > PAN_TURN_OFFSET:
+            print("TURN RIGHT")
             robot.motors.set_tank(TURN_SPEED, -TURN_SPEED)
 
         else:
             robot.stop()
-
+            
         print(
             f"BLUE | err_x={error_x} err_y={error_y} "
             f"pan={robot.camera.pan_pos} tilt={robot.camera.tilt_pos}"
