@@ -27,9 +27,9 @@ PAN_UPDATE_THRESHOLD = 2
 TILT_UPDATE_THRESHOLD = 1
 
 # Motor settings
-ERROR_MOTOR_THRESHOLD = 90
-TURN_SPEED = 0.15
-TURN_PULSE = 0.05          # short pulse to reduce current spike
+ERROR_MOTOR_THRESHOLD = 70
+TURN_SPEED = 0.25
+TURN_PULSE = 0.15          # short pulse to reduce current spike
 BLUE_CONFIRM_FRAMES = 5    # require this many blue frames before motors can move
 
 # -------------------------------
@@ -129,14 +129,14 @@ try:
         if blue_seen_count >= BLUE_CONFIRM_FRAMES:
             if error_x < -ERROR_MOTOR_THRESHOLD:
                 print("TURN LEFT")
-                robot.motors.set_tank(-TURN_SPEED, TURN_SPEED)
+                robot.motors.set_tank(TURN_SPEED, -TURN_SPEED)
                 time.sleep(TURN_PULSE)
                 robot.stop()
                 turning = True
 
             elif error_x > ERROR_MOTOR_THRESHOLD:
                 print("TURN RIGHT")
-                robot.motors.set_tank(TURN_SPEED, -TURN_SPEED)
+                robot.motors.set_tank(-TURN_SPEED, TURN_SPEED)
                 time.sleep(TURN_PULSE)
                 robot.stop()
                 turning = True
