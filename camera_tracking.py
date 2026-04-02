@@ -14,23 +14,24 @@ MIN_CONTOUR_AREA = 1200
 X_DEADBAND = 25
 Y_DEADBAND = 15
 
-KP_PAN = 0.04
-KP_TILT = 0.05
+# motor-first thresholds
+ERROR_MOTOR_THRESHOLD = 70
+TURN_SPEED = 0.22
+
+# camera tuning
+KP_PAN = 0.035
+KP_TILT = 0.06
 
 MAX_PAN_STEP = 3
-MAX_TILT_STEP = 3
+MAX_TILT_STEP = 5
 
-LOOP_DELAY = 0.06
+LOOP_DELAY = 0.05
 ALPHA = 0.35
 
 PAN_UPDATE_THRESHOLD = 2
 TILT_UPDATE_THRESHOLD = 1
 
-# Motor settings
-ERROR_MOTOR_THRESHOLD = 70
-TURN_SPEED = 0.25
-TURN_PULSE = 0.15          # short pulse to reduce current spike
-BLUE_CONFIRM_FRAMES = 5    # require this many blue frames before motors can move
+SAFE_START_DELAY = 2.0
 
 # -------------------------------
 # INIT
@@ -43,11 +44,9 @@ robot.stop()
 
 smooth_cx = None
 smooth_cy = None
-blue_seen_count = 0
 
-# startup safety delay
-print("Startup safe delay...")
-time.sleep(2)
+print("Safe startup delay...")
+time.sleep(SAFE_START_DELAY)
 
 
 # -------------------------------
@@ -100,16 +99,16 @@ try:
         blob = get_blob(frame)
 
         if blob is None:
-            blue_seen_count = 0
             robot.stop()
             print(f"NO BLUE | pan={robot.camera.pan_pos} tilt={robot.camera.tilt_pos}")
             time.sleep(LOOP_DELAY)
             continue
 
-        blue_seen_count += 1
         cx, cy, area = blob
 
-        # smooth target center
+        # -------------------------------
+        # SMOOTH TARGET POSITION
+        # -------------------------------
         if smooth_cx is None:
             smooth_cx = cx
             smooth_cy = cy
@@ -122,29 +121,27 @@ try:
 
         # -------------------------------
         # MOTOR-FIRST HORIZONTAL CONTROL
-        # only after confirmed blue for several frames
+        # continuous turning, no pulsing
         # -------------------------------
         turning = False
 
-        if blue_seen_count >= BLUE_CONFIRM_FRAMES:
-            if error_x < -ERROR_MOTOR_THRESHOLD:
-                print("TURN LEFT")
-                robot.motors.set_tank(TURN_SPEED, -TURN_SPEED)
-                time.sleep(TURN_PULSE)
-                robot.stop()
-                turning = True
+        if error_x < -ERROR_MOTOR_THRESHOLD:
+            print("TURN LEFT")
+            robot.motors.set_tank(TURN_SPEED, -TURN_SPEED)
+            turning = True
 
-            elif error_x > ERROR_MOTOR_THRESHOLD:
-                print("TURN RIGHT")
-                robot.motors.set_tank(-TURN_SPEED, TURN_SPEED)
-                time.sleep(TURN_PULSE)
-                robot.stop()
-                turning = True
+        elif error_x > ERROR_MOTOR_THRESHOLD:
+            print("TURN RIGHT")
+            robot.motors.set_tank(-TURN_SPEED, TURN_SPEED)
+            turning = True
+
+        else:
+            robot.stop()
 
         # -------------------------------
         # CAMERA CONTROL
-        # pan only for fine adjustment when not turning
-        # tilt always allowed
+        # tilt always active
+        # pan only does fine correction when not turning
         # -------------------------------
         pan_step = 0
         tilt_step = 0
@@ -171,8 +168,8 @@ try:
             robot.camera.set_tilt_direct(new_tilt)
 
         print(
-            f"BLUE | seen_count={blue_seen_count} err_x={error_x} err_y={error_y} "
-            f"pan={robot.camera.pan_pos} tilt={robot.camera.tilt_pos}"
+            f"BLUE | err_x={error_x} err_y={error_y} area={area:.0f} "
+            f"turning={turning} pan={robot.camera.pan_pos} tilt={robot.camera.tilt_pos}"
         )
 
         time.sleep(LOOP_DELAY)
