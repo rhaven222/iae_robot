@@ -14,15 +14,24 @@ MIN_CONTOUR_AREA = 1200
 X_DEADBAND = 25
 Y_DEADBAND = 15
 
-KP_PAN = 0.05
+# motor-first thresholds
+ERROR_MOTOR_THRESHOLD = 70      # if object is this far left/right, turn robot first
+TURN_SPEED = 0.28               # lower to reduce brownout risk
+
+# camera tuning
+KP_PAN = 0.035
 KP_TILT = 0.06
 
-MAX_PAN_STEP = 6
+MAX_PAN_STEP = 3
 MAX_TILT_STEP = 5
 
-LOOP_DELAY = 0.03
-
+LOOP_DELAY = 0.05
 ALPHA = 0.35
+
+# only move servo if change is at least this much
+PAN_UPDATE_THRESHOLD = 2
+TILT_UPDATE_THRESHOLD = 1
+
 # -------------------------------
 # INIT
 # -------------------------------
@@ -106,12 +115,33 @@ try:
         error_y = smooth_cy - frame_cy
 
         # -------------------------------
-        # CONTROL
+        # MOTOR-FIRST HORIZONTAL CONTROL
+        # -------------------------------
+        turning = False
+
+        if error_x < -ERROR_MOTOR_THRESHOLD:
+            robot.motors.set_tank(-TURN_SPEED, TURN_SPEED)
+            turning = True
+            print("TURN LEFT")
+
+        elif error_x > ERROR_MOTOR_THRESHOLD:
+            robot.motors.set_tank(TURN_SPEED, -TURN_SPEED)
+            turning = True
+            print("TURN RIGHT")
+
+        else:
+            robot.stop()
+
+        # -------------------------------
+        # CAMERA CONTROL
+        # Tilt always active
+        # Pan only active when object is closer to center
         # -------------------------------
         pan_step = 0
         tilt_step = 0
 
-        if abs(error_x) > X_DEADBAND:
+        # only let camera pan do fine adjustment
+        if not turning and abs(error_x) > X_DEADBAND:
             pan_step = KP_PAN * error_x
 
         if abs(error_y) > Y_DEADBAND:
@@ -126,35 +156,15 @@ try:
         new_pan = clamp(new_pan, robot.camera.PAN_MIN, robot.camera.PAN_MAX)
         new_tilt = clamp(new_tilt, robot.camera.TILT_MIN, robot.camera.TILT_MAX)
 
-        if abs(new_pan - robot.camera.pan_pos) >= 1:
+        if abs(new_pan - robot.camera.pan_pos) >= PAN_UPDATE_THRESHOLD:
             robot.camera.set_pan_direct(new_pan)
 
-        if abs(new_tilt - robot.camera.tilt_pos) >= 1:
+        if abs(new_tilt - robot.camera.tilt_pos) >= TILT_UPDATE_THRESHOLD:
             robot.camera.set_tilt_direct(new_tilt)
 
-        # -------------------------------
-        # MOTOR ASSIST: turn before camera reaches the edge
-        # -------------------------------
-        TURN_SPEED = 0.35
-        PAN_TURN_OFFSET = 20      # how far pan must be from center before base helps
-        ERROR_TURN_THRESHOLD = 80 # how far object is from image center before base helps
-
-        pan_from_center = robot.camera.pan_pos - robot.camera.PAN_CENTER
-
-        if error_x < -ERROR_TURN_THRESHOLD and pan_from_center < -PAN_TURN_OFFSET:
-            print("TURN LEFT")
-            robot.motors.set_tank(-TURN_SPEED, TURN_SPEED)
-
-        elif error_x > ERROR_TURN_THRESHOLD and pan_from_center > PAN_TURN_OFFSET:
-            print("TURN RIGHT")
-            robot.motors.set_tank(TURN_SPEED, -TURN_SPEED)
-
-        else:
-            robot.stop()
-            
         print(
-            f"BLUE | err_x={error_x} err_y={error_y} "
-            f"pan={robot.camera.pan_pos} tilt={robot.camera.tilt_pos}"
+            f"BLUE | err_x={error_x} err_y={error_y} area={area:.0f} "
+            f"turning={turning} pan={robot.camera.pan_pos} tilt={robot.camera.tilt_pos}"
         )
 
         time.sleep(LOOP_DELAY)
