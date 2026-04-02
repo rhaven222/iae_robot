@@ -22,12 +22,13 @@ X_DEADBAND = 30
 Y_DEADBAND = 30
 
 # Proportional control gains
-KP_PAN = 0.04
-KP_TILT = 0.04
+KP_PAN = 0.08
+KP_TILT = 0.08
+
 
 # Limit how much the camera can move per update
-MAX_PAN_STEP = 6
-MAX_TILT_STEP = 4
+MAX_PAN_STEP = 12
+MAX_TILT_STEP = 10
 
 # Loop delay
 LOOP_DELAY = 0.05
