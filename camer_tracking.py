@@ -127,25 +127,25 @@ try:
                 tilt_step = KP_TILT * error_y
 
             # Reverse signs here if movement is backwards on your robot
-            new_pan = round(robot.camera.pan_angle - pan_step)
-            new_tilt = round(robot.camera.tilt_angle + tilt_step)
+            new_pan = round(robot.camera.pan_pos - pan_step)
+            new_tilt = round(robot.camera.tilt_pos + tilt_step)
 
             new_pan = clamp(new_pan, robot.camera.PAN_MIN, robot.camera.PAN_MAX)
             new_tilt = clamp(new_tilt, robot.camera.TILT_MIN, robot.camera.TILT_MAX)
 
-            if new_pan != robot.camera.pan_angle:
+            if new_pan != robot.camera.pan_pos:
                 robot.camera.set_pan(new_pan)
 
-            if new_tilt != robot.camera.tilt_angle:
+            if new_tilt != robot.camera.tilt_pos:
                 robot.camera.set_tilt(new_tilt)
 
             # -------------------------------
             # Base turning assist
             # Only turn robot if camera is near pan limits
             # -------------------------------
-            if robot.camera.pan_angle <= robot.camera.PAN_MIN + PAN_LIMIT_BUFFER and error_x < -X_DEADBAND:
+            if robot.camera.pan_pos <= robot.camera.PAN_MIN + PAN_LIMIT_BUFFER and error_x < -X_DEADBAND:
                 robot.left()
-            elif robot.camera.pan_angle >= robot.camera.PAN_MAX - PAN_LIMIT_BUFFER and error_x > X_DEADBAND:
+            elif robot.camera.pan_pos >= robot.camera.PAN_MAX - PAN_LIMIT_BUFFER and error_x > X_DEADBAND:
                 robot.right()
             else:
                 robot.stop()
@@ -170,7 +170,7 @@ try:
 
             if time.time() - last_seen_time > LOST_TIMEOUT:
                 # Simple search sweep
-                next_pan = robot.camera.pan_angle + (SEARCH_STEP * search_direction)
+                next_pan = robot.camera.pan_pos + (SEARCH_STEP * search_direction)
 
                 if next_pan >= robot.camera.PAN_MAX:
                     next_pan = robot.camera.PAN_MAX
