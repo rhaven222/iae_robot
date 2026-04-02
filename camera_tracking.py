@@ -16,7 +16,7 @@ Y_DEADBAND = 15
 
 # motor-first thresholds
 ERROR_MOTOR_THRESHOLD = 70
-TURN_SPEED = 0.22
+TURN_SPEED = 0.4
 
 # camera tuning
 KP_PAN = 0.035
