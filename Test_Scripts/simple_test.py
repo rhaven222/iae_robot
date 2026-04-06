@@ -1,4 +1,4 @@
-from iae_robot.functions import Robot
+from iae_robot.Libraries.functions import Robot
 import time
 
 robot = Robot()

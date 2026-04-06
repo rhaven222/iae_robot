@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import time
-from functions import Robot
+from iae_robot.Libraries.functions import Robot
 
 # -------------------------------
 # SETTINGS

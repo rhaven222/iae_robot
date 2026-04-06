@@ -1,6 +1,6 @@
 import time
-from functions import Robot
-from controller_map import PS5Controller
+from iae_robot.Libraries.functions import Robot
+from iae_robot.Libraries.controller_map import PS5Controller
 
 robot = Robot()
 controller = PS5Controller()
