@@ -6,6 +6,7 @@ class PS5Controller:
     LEFT_Y = 1
     RIGHT_X = 3
     RIGHT_Y = 4
+    L2_AXIS = 2
     R2_AXIS = 5
 
     DPAD_HAT = 0
@@ -52,6 +53,7 @@ class PS5Controller:
             "ly": self.apply_deadzone(self.js.get_axis(self.LEFT_Y), self.DEADZONE_LEFT_Y),
             "rx": self.apply_deadzone(self.js.get_axis(self.RIGHT_X), self.DEADZONE_RIGHT_X),
             "ry": self.apply_deadzone(self.js.get_axis(self.RIGHT_Y), self.DEADZONE_RIGHT_Y),
+            "l2": self.js.get_axis(self.L2_AXIS),
             "r2": self.js.get_axis(self.R2_AXIS),
             "hat": self.js.get_hat(self.DPAD_HAT),
             "l1": bool(self.js.get_button(self.L1_BUTTON)),
