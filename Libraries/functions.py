@@ -280,8 +280,8 @@ class CameraServos(SmoothServoGroup):
     def __init__(self, pca):
         super().__init__(pca)
 
-        self.pan = servo.Servo(self.pca.channels[0])   # horizontal
-        self.tilt = servo.Servo(self.pca.channels[1])  # vertical
+        self.pan = servo.Servo(self.pca.channels[1])   # horizontal
+        self.tilt = servo.Servo(self.pca.channels[0])  # vertical
 
         self.pan_pos = self.PAN_CENTER
         self.tilt_pos = self.TILT_STRAIGHT
