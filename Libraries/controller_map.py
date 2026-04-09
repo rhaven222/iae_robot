@@ -18,10 +18,10 @@ class PS5Controller:
     L1_BUTTON = 4
     R1_BUTTON = 5
 
-    DEADZONE_LEFT_X = 0.2
-    DEADZONE_LEFT_Y = 0.2
-    DEADZONE_RIGHT_X = 0.2
-    DEADZONE_RIGHT_Y = 0.2
+    DEADZONE_LEFT_X = 0.3
+    DEADZONE_LEFT_Y = 0.3
+    DEADZONE_RIGHT_X = 0.3
+    DEADZONE_RIGHT_Y = 0.3
 
     def __init__(self, joystick_index=0):
         pygame.init()
