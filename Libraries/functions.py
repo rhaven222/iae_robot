@@ -51,7 +51,7 @@ class Motors:
 
     def turn_right(self, duration, speed):
         self.dir1.off()
-        self.dir2.off()   # change if turn direction is wrong
+        self.dir2.off()   
         self.pwm1.value = speed
         self.pwm2.value = speed
         time.sleep(duration)
@@ -59,7 +59,7 @@ class Motors:
 
     def turn_left(self, duration, speed):
         self.dir1.on()
-        self.dir2.on()   # change if turn direction is wrong
+        self.dir2.on()   
         self.pwm1.value = speed
         self.pwm2.value = speed
         time.sleep(duration)
@@ -162,7 +162,7 @@ class Arm(SmoothServoGroup):
         self.set_all(90, 90, 90, 90)
 
     # -----------------------
-    # SMOOTH SETTERS
+    # SMOOTH SETTERS (stops twiching and quick uncontrolled movements)
     # for autonomous / presets
     # -----------------------
     def set_claw(self, angle, delay=0.02):
@@ -187,7 +187,7 @@ class Arm(SmoothServoGroup):
 
     # -----------------------
     # DIRECT SETTERS
-    # for controller / teleop
+    # for controller
     # -----------------------
     def set_claw_direct(self, angle):
         angle = max(0, min(180, angle))

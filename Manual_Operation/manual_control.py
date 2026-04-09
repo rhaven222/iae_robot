@@ -108,7 +108,8 @@ try:
             if robot.arm.claw_pos != 120:
                 robot.arm.close_claw()
                 arm_is_moving = True
-        else:
+
+        elif state["l2"] > 0:
             if robot.arm.claw_pos != 20:
                 robot.arm.open_claw()
                 arm_is_moving = True
