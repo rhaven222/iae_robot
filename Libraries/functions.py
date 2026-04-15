@@ -9,7 +9,7 @@ from adafruit_motor import servo
 
 
 
-#PCA9685 SETUP
+#Waveshare Servo Hat SETUP
 
 class ServoHat:
     def __init__(self, frequency=50):
@@ -162,8 +162,8 @@ class Arm(SmoothServoGroup):
         self.set_all(90, 90, 90, 90)
 
     # -----------------------
-    # SMOOTH SETTERS (stops twiching and quick uncontrolled movements)
-    # for autonomous / presets
+    # SMOOTH SETTERS (stops twiching)
+    # for autonomous
     # -----------------------
     def set_claw(self, angle, delay=0.02):
         angle = max(0, min(180, angle))
