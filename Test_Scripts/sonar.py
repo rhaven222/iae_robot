@@ -1,10 +1,9 @@
 from gpiozero import DistanceSensor
 from time import sleep
 
-# echo=24, trigger=25
-sensor = DistanceSensor(echo=18, trigger=23)
+sensor = DistanceSensor(echo=18, trigger=23, max_distance=2)
 
 while True:
-    distance = sensor.distance * 100  # convert to cm
-    print(f"Distance: {distance:.2f} cm")
-    sleep(2)
+    print("meters:", sensor.distance)
+    print("cm:", sensor.distance * 100)
+    sleep(1)
