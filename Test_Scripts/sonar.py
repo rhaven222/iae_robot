@@ -1,7 +1,7 @@
 from gpiozero import DistanceSensor
 from time import sleep
 
-sensor = DistanceSensor(echo=18, trigger=23, max_distance=2)
+sensor = DistanceSensor(echo=23, trigger=18, max_distance=2)
 
 while True:
     print("meters:", sensor.distance)
