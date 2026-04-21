@@ -1,4 +1,4 @@
-from common.ros_robot_controller_sdk import Board
+from common.ros_robot2_controller_sdk import Board
 
 print("Creating Board...")
 board = Board()
