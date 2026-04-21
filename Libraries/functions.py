@@ -90,7 +90,7 @@ class Motors:
             self.pwm2.value = 0
 
 
-# BASE SERVO CLASS
+# SERVO MOVEMENT CLASSES FOR SMOOTHING 
 
 class SmoothServoGroup:
     def __init__(self, pca):
@@ -185,31 +185,7 @@ class Arm(SmoothServoGroup):
         self.move_smooth(self.base, self.base_pos, angle, delay)
         self.base_pos = angle
 
-    # -----------------------
-    # DIRECT SETTERS
-    # for controller
-    # -----------------------
-    def set_claw_direct(self, angle):
-        angle = max(0, min(180, angle))
-        self.claw.angle = angle
-        self.claw_pos = angle
-
-    def set_orient_direct(self, angle):
-        angle = max(0, min(180, angle))
-        self.orient.angle = angle
-        self.orient_pos = angle
-
-    def set_mid_direct(self, angle):
-        angle = max(0, min(180, angle))
-        self.mid.angle = angle
-        self.mid_pos = angle
-
-    def set_base_direct(self, angle):
-        angle = max(0, min(180, angle))
-        self.base.angle = angle
-        self.base_pos = angle
-
-    # -----------------------
+     # -----------------------
     # SMOOTH PRESET ACTIONS
     # for autonomous use
     # -----------------------
@@ -236,6 +212,31 @@ class Arm(SmoothServoGroup):
     def fold_arm(self, delay=0.02):
         self.set_base(160, delay)
         self.set_mid(30, delay)
+
+    # -----------------------
+    # DIRECT SETTERS
+    # for controller
+    # -----------------------
+    def set_claw_direct(self, angle):
+        angle = max(0, min(180, angle))
+        self.claw.angle = angle
+        self.claw_pos = angle
+
+    def set_orient_direct(self, angle):
+        angle = max(0, min(180, angle))
+        self.orient.angle = angle
+        self.orient_pos = angle
+
+    def set_mid_direct(self, angle):
+        angle = max(0, min(180, angle))
+        self.mid.angle = angle
+        self.mid_pos = angle
+
+    def set_base_direct(self, angle):
+        angle = max(0, min(180, angle))
+        self.base.angle = angle
+        self.base_pos = angle
+
 
     # -----------------------
     # DIRECT ACTIONS
