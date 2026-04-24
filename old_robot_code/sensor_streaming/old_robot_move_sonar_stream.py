@@ -5,7 +5,13 @@ import sys
 import time
 import threading
 from pathlib import Path
+
+import sys
+sys.path.append("/home/megan/ACP/python")
+
 from acpcomms.messenger import Publisher, Subscriber, Listener
+
+
 
 # =======================
 # Add common SDK path
