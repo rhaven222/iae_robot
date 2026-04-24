@@ -46,11 +46,11 @@ MIN_ANGLE = -90
 MAX_ANGLE = 90
 
 servo_angle = {
-    1: 10,    # claw
+    1: -50,   # claw open (40° actual)
     2: 0,     # camera pan
-    3: -80,   # base
-    4: 80,    # mid
-    5: -90,   # orient
+    3: 85,    # base (175° actual → straight up)
+    4: 12,    # mid (102° actual → right angle)
+    5: 0,     # orient (90° actual → level)
     6: 0      # camera tilt
 }
 
@@ -120,7 +120,7 @@ def angle_to_pulse(angle):
 def update_servos():
     board.pwm_servo_set_position(
         0.05,
-        [[s, angle_to_pulse(servo_angle[s])] for s in servo_angle]
+        [[s, angle_to_pulse(servo_angle[s] + (90 if s == 5 else 0))] for s in servo_angle]
     )
 
 def reset_servos():
