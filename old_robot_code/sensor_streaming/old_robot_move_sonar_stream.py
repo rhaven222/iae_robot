@@ -255,7 +255,7 @@ sub_listener = Listener(sub)
 dash_sub = Subscriber(f"tcp://{DASH_IP}:{DASH_PORT}", "")
 dash_listener = Listener(dash_sub)
 
-sonar_pub = Publisher(f"tcp://{DASH_IP}:{DASH_PORT}")
+sonar_pub = Publisher(f"tcp://*:{DASH_PORT}")
 
 # =======================
 # Start
