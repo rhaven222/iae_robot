@@ -25,9 +25,10 @@ import common.sonar as Sonar
 # =======================
 # Network config
 # =======================
-LAPTOP_IP = "192.168.128.8"
-DASH_IP = "192.168.128.8"
-DASH_PORT = 5556
+LAPTOP_IP = "172.20.7.135"
+DASH_IP = "172.20.7.135"
+STREAM_HOST = "172.20.7.135"
+DASH_PORT = 8080
 SONAR_TOPIC = "sonar"
 
 # =======================
@@ -50,8 +51,8 @@ servo_angle = {
     2: 0,     # camera pan
     3: 85,    # base (175° actual → straight up)
     4: 12,    # mid (102° actual → right angle)
-    5: 0,     # orient (90° actual → level)
-    6: 0      # camera tilt
+    5: 90,     # orient (90° actual → level)
+    6: 82      # camera tilt
 }
 
 active_motion = None
@@ -253,7 +254,7 @@ sub_listener = Listener(sub)
 dash_sub = Subscriber(f"tcp://{DASH_IP}:{DASH_PORT}", "")
 dash_listener = Listener(dash_sub)
 
-sonar_pub = Publisher("tcp://*:5556")
+sonar_pub = Publisher(f"tcp://{DASH_IP}:{DASH_PORT}")
 
 # =======================
 # Start
