@@ -28,7 +28,8 @@ import common.sonar as Sonar
 LAPTOP_IP = "172.20.7.135"
 DASH_IP = "172.20.7.135"
 STREAM_HOST = "172.20.7.135"
-DASH_PORT = 8080
+
+DASH_PORT = 5556
 SONAR_TOPIC = "sonar"
 
 # =======================
