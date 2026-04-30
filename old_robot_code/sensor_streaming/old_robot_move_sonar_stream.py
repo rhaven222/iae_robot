@@ -44,16 +44,16 @@ sonar = Sonar.Sonar()
 MOVE_SPEED = 70
 TURN_SPEED = 55
 ANGLE_STEP = 5
-MIN_ANGLE = -90
-MAX_ANGLE = 90
+MIN_ANGLE = 0
+MAX_ANGLE = 180
 
 servo_angle = {
-    1: -50,   # claw open
-    2: -8,    # camera pan = 82 actual
-    3: 85,    # base = 175 actual, straight up
-    4: 12,    # mid = 102 actual, right angle
-    5: 0,     # claw orientation = 90 actual, level
-    6: -75    # camera tilt = 15 actual, straight
+    1: 40,    # claw open
+    2: 82,    # camera pan center
+    3: 175,   # base straight up
+    4: 102,   # mid right angle
+    5: 90,    # claw orientation level
+    6: 15     # camera tilt straight
 }
 
 active_motion = None
@@ -117,12 +117,12 @@ def slide_right():
 
 def angle_to_pulse(angle):
     angle = max(MIN_ANGLE, min(MAX_ANGLE, angle))
-    return int(1500 + angle * (1000 / 90))
+    return int(500 + angle * (2000 / 180))
 
 def update_servos():
     board.pwm_servo_set_position(
         0.05,
-        [[s, angle_to_pulse(servo_angle[s] + (90 if s == 5 else 0))] for s in servo_angle]
+        [[s, angle_to_pulse(servo_angle[s])] for s in servo_angle]
     )
 
 def reset_servos():
@@ -228,7 +228,7 @@ def sonar_publish_loop():
 
             sonar_pub.post_message(
                 {
-                    "sensor_id": "Robot_001_Reese",
+                    "sensor_id": "Robot_001_Pickles",
                     "sensor_type": "SONAR",
                     "data_type": "distance",
                     "timestamp": time.time(),
