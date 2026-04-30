@@ -48,12 +48,12 @@ MIN_ANGLE = -90
 MAX_ANGLE = 90
 
 servo_angle = {
-    1: -50,   # claw open (40° actual)
-    2: 0,     # camera pan
-    3: 85,    # base (175° actual → straight up)
-    4: 12,    # mid (102° actual → right angle)
-    5: 90,     # orient (90° actual → level)
-    6: 82      # camera tilt
+    1: -50,   # claw open
+    2: -8,    # camera pan = 82 actual
+    3: 85,    # base = 175 actual, straight up
+    4: 12,    # mid = 102 actual, right angle
+    5: 0,     # claw orientation = 90 actual, level
+    6: -75    # camera tilt = 15 actual, straight
 }
 
 active_motion = None
@@ -224,11 +224,11 @@ def dispatch_loop(listener):
 def sonar_publish_loop():
     while True:
         try:
-            dist_cm = sonar.getDistance() / 10.0
+            dist_cm = round(sonar.getDistance() / 10.0, 2)
 
             sonar_pub.post_message(
                 {
-                    "sensor_id": "Robot_001",
+                    "sensor_id": "Robot_001_Reese",
                     "sensor_type": "SONAR",
                     "data_type": "distance",
                     "timestamp": time.time(),
