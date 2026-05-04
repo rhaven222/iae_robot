@@ -245,18 +245,17 @@ def sonar_publish_loop():
 
         time.sleep(1)
 
+
 # =======================
 # Comms setup
 # =======================
 
-sub = Subscriber(f"tcp://{LAPTOP_IP}:5555", "")
-sub_listener = Listener(sub)
+# Listen for commands from DASH (laptop → robot)
+command_sub = Subscriber(f"tcp://{LAPTOP_IP}:5555", "")
+command_listener = Listener(command_sub)
 
-dash_sub = Subscriber(f"tcp://{DASH_IP}:{DASH_PORT}", "")
-dash_listener = Listener(dash_sub)
-
-sonar_pub = Publisher(f"tcp://*:{DASH_PORT}")
-
+# Publish sonar data to DASH (robot → DASH)
+sonar_pub = Publisher("tcp://*:5556")
 # =======================
 # Start
 # =======================
@@ -264,8 +263,7 @@ sonar_pub = Publisher(f"tcp://*:{DASH_PORT}")
 reset_servos()
 
 threading.Thread(target=sonar_publish_loop, daemon=True).start()
-threading.Thread(target=dispatch_loop, args=(sub_listener,), daemon=True).start()
-threading.Thread(target=dispatch_loop, args=(dash_listener,), daemon=True).start()
+threading.Thread(target=dispatch_loop, args=(command_listener,), daemon=True).start()
 
 print(f"""
 ========================================
@@ -304,12 +302,8 @@ except KeyboardInterrupt:
     print("\nShutting down...")
 
 finally:
-    sub_listener.stop()
-    sub.close()
-
-    dash_listener.stop()
-    dash_sub.close()
-
+    command_listener.stop()
+    command_sub.close()
     sonar_pub.close()
 
     stop_motors()
