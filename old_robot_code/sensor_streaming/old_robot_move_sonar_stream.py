@@ -9,9 +9,9 @@ from pathlib import Path
 import sys
 sys.path.append("/home/megan/ACP/python")
 
-controller_path = Path('/home/megan/iae_robot/Libraries')
-
+controller_path = Path('/home/megan/iae_robot')
 sys.path.append(str(controller_path))
+
 import time
 from Libraries.functions import Robot
 from Libraries.controller_map import PS5Controller
