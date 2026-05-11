@@ -9,6 +9,17 @@ from pathlib import Path
 import sys
 sys.path.append("/home/megan/ACP/python")
 
+controller_path = Path('/home/megan/iae_robot/Libraries')
+
+sys.path.append(str(controller_path))
+import time
+from Libraries.functions import Robot
+from Libraries.controller_map import PS5Controller
+
+robot = Robot()
+controller = PS5Controller()
+
+    
 from acpcomms.messenger import Publisher, Subscriber, Listener
 
 
@@ -46,6 +57,10 @@ TURN_SPEED = 55
 ANGLE_STEP = 5
 MIN_ANGLE = 0
 MAX_ANGLE = 180
+
+CAMERA_STEP = 8.0
+ARM_STEP = 4.0
+MID_STEP = 4.0
 
 servo_angle = {
     1: 40,    # claw open
@@ -379,19 +394,7 @@ Sonar PUB       -> tcp://*:5556
 
 try:
     while True:
-        controller_path = Path('/home/megan/iae_robot/Libraries')
-        sys.path.append(str(controller_path))
-        
-        import time
-        from Libraries.functions import Robot
-        from Libraries.controller_map import PS5Controller
 
-        robot = Robot()
-        controller = PS5Controller()
-
-        CAMERA_STEP = 8.0
-        ARM_STEP = 4.0
-        MID_STEP = 4.0
 
         def get_drive_label(forward, turn, move_thresh=0.15, turn_thresh=0.15):
             if abs(forward) < move_thresh and abs(turn) < turn_thresh:
