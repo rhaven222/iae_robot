@@ -56,6 +56,29 @@ servo_angle = {
     6: 15     # camera tilt straight
 }
 
+arm_state = {
+    "base_servo": 90,
+    "mid_servo": 90,
+    "claw_orientation": 90,
+    "claw_angle": 40,
+    "claw_state": "open"
+}
+
+camera_state = {
+    "pan_angle": 82,
+    "tilt_angle": 15
+}
+
+motor_state = {
+    "left_motor": {
+        "direction": "stopped",
+        "speed": 0.0
+    },
+    "right_motor": {
+        "direction": "stopped",
+        "speed": 0.0
+    }
+}
 active_motion = None
 motion_end_time = 0.0
 
@@ -69,6 +92,7 @@ def stop_motors():
 
 def move_forward():
     """Forward (both motors same direction)."""
+    update_motor_state(MOVE_SPEED, MOVE_SPEED)
     board.set_motor_duty([
         [1, MOVE_SPEED],
         [2, MOVE_SPEED],
@@ -78,6 +102,7 @@ def move_forward():
 
 def move_backward():
     """Backward."""
+    update_motor_state(-MOVE_SPEED, -MOVE_SPEED)
     board.set_motor_duty([
         [1, -MOVE_SPEED],
         [2, -MOVE_SPEED],
@@ -87,6 +112,7 @@ def move_backward():
 
 def turn_left():
     """Left turn (tank drive)."""
+    update_motor_state(-TURN_SPEED, TURN_SPEED)
     board.set_motor_duty([
         [1, -TURN_SPEED],
         [2, TURN_SPEED],
@@ -96,6 +122,7 @@ def turn_left():
 
 def turn_right():
     """Right turn."""
+    update_motor_state(TURN_SPEED, -TURN_SPEED)
     board.set_motor_duty([
         [1, TURN_SPEED],
         [2, -TURN_SPEED],
@@ -112,7 +139,7 @@ def slide_right():
     turn_right()
 
 # =======================
-# Servo helpers
+# Helper Functions
 # =======================
 
 def angle_to_pulse(angle):
@@ -120,6 +147,18 @@ def angle_to_pulse(angle):
     return int(500 + angle * (2000 / 180))
 
 def update_servos():
+    update_arm_state(
+        servo_angle[3],   # base
+        servo_angle[4],   # mid
+        servo_angle[5],   # claw orientation
+        servo_angle[1]    # claw
+    )
+
+    update_camera_state(
+        servo_angle[2],   # camera pan
+        servo_angle[6]    # camera tilt
+    )
+
     board.pwm_servo_set_position(
         0.05,
         [[s, angle_to_pulse(servo_angle[s])] for s in servo_angle]
@@ -127,6 +166,39 @@ def update_servos():
 
 def reset_servos():
     update_servos()
+
+def speed_to_direction(speed):
+    if speed > 0:
+        return "forward"
+    elif speed < 0:
+        return "reverse"
+    else:
+        return "stopped"
+
+
+def update_motor_state(left_speed, right_speed):
+    motor_state["left_motor"]["direction"] = speed_to_direction(left_speed)
+    motor_state["left_motor"]["speed"] = abs(left_speed)
+
+    motor_state["right_motor"]["direction"] = speed_to_direction(right_speed)
+    motor_state["right_motor"]["speed"] = abs(right_speed)
+
+
+def update_arm_state(base, mid, orientation, claw):
+    arm_state["base_servo"] = base
+    arm_state["mid_servo"] = mid
+    arm_state["claw_orientation"] = orientation
+    arm_state["claw_angle"] = claw
+
+    if claw >= 100:
+        arm_state["claw_state"] = "closed"
+    else:
+        arm_state["claw_state"] = "open"
+
+
+def update_camera_state(pan, tilt):
+    camera_state["pan_angle"] = pan
+    camera_state["tilt_angle"] = tilt
 
 # =======================
 # Message handlers
@@ -218,17 +290,17 @@ def dispatch_loop(listener):
         time.sleep(0.05)
 
 # =======================
-# Sonar publish loop
+# Robot publish loop
 # =======================
 
-def sonar_publish_loop():
+def robot_publish_loop():
     while True:
         try:
             dist_cm = round(sonar.getDistance() / 10.0, 2)
 
-            sonar_pub.post_message(
+            robot_pub.post_message(
                 {
-                    "sensor_id": "Robot_001_Pickles",
+                    "sensor_id": "Robot_001_TANK",
                     "sensor_type": "SONAR",
                     "data_type": "distance",
                     "timestamp": time.time(),
@@ -240,6 +312,32 @@ def sonar_publish_loop():
 
             print(f"Sonar: {dist_cm:.2f} cm")
 
+            robot_pub.post_message(arm_state, "arm_state")
+            robot_pub.post_message(camera_state, "camera_state")
+            robot_pub.post_message(motor_state, "motor_state")
+
+            print(
+                f"Claw: {arm_state['claw_state']} "
+                f"at {arm_state['claw_angle']}°"
+            )
+
+            print(
+                f"Camera: pan={camera_state['pan_angle']} "
+                f"tilt={camera_state['tilt_angle']}"
+            )
+
+            print(
+                f"Left Motor: "
+                f"{motor_state['left_motor']['direction']} "
+                f"{motor_state['left_motor']['speed']:.2f}"
+            )
+
+            print(
+                f"Right Motor: "
+                f"{motor_state['right_motor']['direction']} "
+                f"{motor_state['right_motor']['speed']:.2f}"
+            )
+    
         except Exception as e:
             print(f"Sonar read error: {e}")
 
@@ -255,7 +353,7 @@ sub_listener = Listener(sub)
 dash_sub = Subscriber(f"tcp://{DASH_IP}:{DASH_PORT}", "")
 dash_listener = Listener(dash_sub)
 
-sonar_pub = Publisher(f"tcp://*:{DASH_PORT}")
+robot_pub = Publisher(f"tcp://*:{DASH_PORT}")
 
 # =======================
 # Start
@@ -263,13 +361,13 @@ sonar_pub = Publisher(f"tcp://*:{DASH_PORT}")
 
 reset_servos()
 
-threading.Thread(target=sonar_publish_loop, daemon=True).start()
+threading.Thread(target=robot_publish_loop, daemon=True).start()
 threading.Thread(target=dispatch_loop, args=(sub_listener,), daemon=True).start()
 threading.Thread(target=dispatch_loop, args=(dash_listener,), daemon=True).start()
 
 print(f"""
 ========================================
- Robot + Sonar Stream Started
+ Robot Stream Started
 ========================================
 keyboard_pub   <- tcp://{LAPTOP_IP}:5555
 DASH commands  <- tcp://{DASH_IP}:{DASH_PORT}
@@ -310,7 +408,7 @@ finally:
     dash_listener.stop()
     dash_sub.close()
 
-    sonar_pub.close()
+    robot_pub.close()
 
     stop_motors()
     reset_servos()
