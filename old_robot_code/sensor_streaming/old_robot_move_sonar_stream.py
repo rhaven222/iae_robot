@@ -310,14 +310,17 @@ def robot_publish_loop():
                 SONAR_TOPIC
             )
 
-            print(f"Sonar: {dist_cm:.2f} cm")
+            print(f"\nSonar: {dist_cm:.2f} cm")
 
             robot_pub.post_message(arm_state, "arm_state")
             robot_pub.post_message(camera_state, "camera_state")
             robot_pub.post_message(motor_state, "motor_state")
 
             print(
-                f"Claw: {arm_state['claw_state']} "
+                f"Base: {arm_state['Base_servo']} | "
+                f"\nMid: {arm_state['Mid_servo']} | "
+                f"\nClaw Orientation: {arm_state['claw_orientation']} | "
+                f"\nClaw: {arm_state['claw_state']} "
                 f"at {arm_state['claw_angle']}°"
             )
 
