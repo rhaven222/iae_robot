@@ -9,17 +9,6 @@ from pathlib import Path
 import sys
 sys.path.append("/home/megan/ACP/python")
 
-controller_path = Path('/home/megan/iae_robot')
-sys.path.append(str(controller_path))
-
-import time
-from Libraries.functions import Robot
-from Libraries.controller_map import PS5Controller
-
-robot = Robot()
-controller = PS5Controller()
-
-    
 from acpcomms.messenger import Publisher, Subscriber, Listener
 
 
@@ -57,10 +46,6 @@ TURN_SPEED = 55
 ANGLE_STEP = 5
 MIN_ANGLE = 0
 MAX_ANGLE = 180
-
-CAMERA_STEP = 8.0
-ARM_STEP = 4.0
-MID_STEP = 4.0
 
 servo_angle = {
     1: 40,    # claw open
@@ -230,8 +215,6 @@ def handle_sonar(msg):
     except KeyError as e:
         print("Missing sonar field:", e)
 
-
-
 def handle_robot_command(msg):
     global active_motion, motion_end_time
 
@@ -310,7 +293,10 @@ def dispatch_loop(listener):
 # Robot publish loop
 # =======================
 
+robot_pub = Publisher(f"tcp://*:{DASH_PORT}")
+
 def robot_publish_loop():
+    global left_motor, right_motor
     while True:
         try:
             dist_cm = round(sonar.getDistance() / 10.0, 2)
@@ -329,12 +315,44 @@ def robot_publish_loop():
 
             print(f"\nSonar: {dist_cm:.2f} cm")
 
-            robot_pub.post_message(arm_state, "arm_state")
-            robot_pub.post_message(camera_state, "camera_state")
-            robot_pub.post_message(motor_state, "motor_state")
+            robot_pub.post_message(
+                {
+                    "left_motor": {
+                        "direction": speed_to_direction(left_motor),
+                        "speed": abs(left_motor)
+                    },
+                    "right_motor": {
+                        "direction": speed_to_direction(right_motor),
+                        "speed": abs(right_motor)
+                    }
+                },
+                "motor_state"
+            )
+
+            robot_pub.post_message(
+                {
+                    "base_servo": arm_state["base_servo"],
+                    "mid_servo": arm_state["mid_servo"],
+                    "claw_orientation": arm_state["claw_orientation"],
+                    "claw_angle": arm_state["claw_angle"],
+                    "claw_state": "closed" if arm_state["claw_angle"] >= 100 else "open"
+                },
+                "arm_state"
+            )
+
+            robot_pub.post_message(
+                {
+                    "pan_angle": camera_state["pan_angle"],
+                    "tilt_angle": camera_state["tilt_angle"]
+                },
+                "camera_state"
+            )
 
             print(
-                f"Claw: {arm_state['claw_state']} "
+                f"Base: {arm_state['Base_servo']} "
+                f"\nMid: {arm_state['Mid_servo']}"
+                f"\nClaw Orientation: {arm_state['claw_orientation']} "
+                f"\nClaw: {arm_state['claw_state']} "
                 f"at {arm_state['claw_angle']}°"
             )
 
@@ -394,132 +412,26 @@ Sonar PUB       -> tcp://*:5556
 
 try:
     while True:
+        time.sleep(0.1)
 
+        if motion_end_time and time.time() >= motion_end_time:
+            active_motion = None
+            motion_end_time = 0.0
 
-        def get_drive_label(forward, turn, move_thresh=0.15, turn_thresh=0.15):
-            if abs(forward) < move_thresh and abs(turn) < turn_thresh:
-                return "Stopped"
-
-            if forward > move_thresh:
-                if turn > turn_thresh:
-                    return "Forward left"
-                elif turn < -turn_thresh:
-                    return "Forward right"
-                return "Forward"
-
-            if forward < -move_thresh:
-                if turn > turn_thresh:
-                    return "Reverse left"
-                elif turn < -turn_thresh:
-                    return "Reverse right"
-                return "Reverse"
-
-            if turn > turn_thresh:
-                return "Turn left"
-            if turn < -turn_thresh:
-                return "Turn right"
-
-            return "Stopped"
-
-        last_drive_label = None
-        arm_moving = False
-        camera_moving = False
-
-        try:
-            while True:
-                state = controller.get_state()
-
-                # -----------------------
-                # DRIVE
-                # -----------------------
-                forward = -state["ly"]
-                turn = -state["lx"]
-
-                left_motor, right_motor = controller.get_drive()
-                robot.motors.set_tank(left_motor, right_motor)
-
-                drive_label = get_drive_label(forward, turn)
-                if drive_label != last_drive_label:
-                    if drive_label != "Stopped":
-                        print(drive_label)
-                    last_drive_label = drive_label
-
-                # -----------------------
-                # CAMERA
-                # -----------------------
-                camera_is_moving = (state["rx"] != 0 or state["ry"] != 0)
-
-                if camera_is_moving and not camera_moving:
-                    print("Moving camera")
-                    camera_moving = True
-
-                if state["rx"] != 0:
-                    robot.camera.step_pan(-state["rx"] * CAMERA_STEP)
-
-                if state["ry"] != 0:
-                    robot.camera.step_tilt(-state["ry"] * CAMERA_STEP)
-
-                if not camera_is_moving and camera_moving:
-                    print(f"Camera angles: pan={robot.camera.pan_pos:.1f}, tilt={robot.camera.tilt_pos:.1f}")
-                    camera_moving = False
-
-                # -----------------------
-                # ARM
-                # -----------------------
-                hat_x, hat_y = state["hat"]
-                arm_is_moving = False
-
-                if hat_y == 1:
-                    robot.arm.step_up(ARM_STEP)
-                    arm_is_moving = True
-                elif hat_y == -1:
-                    robot.arm.step_down(ARM_STEP)
-                    arm_is_moving = True
-
-                if hat_x == -1:
-                    robot.arm.mid_down_step(MID_STEP)
-                    arm_is_moving = True
-                elif hat_x == 1:
-                    robot.arm.mid_up_step(MID_STEP)
-                    arm_is_moving = True
-
-                if state["l1"]:
-                    robot.arm.rotate_left_step(ARM_STEP)
-                    arm_is_moving = True
-
-                if state["r1"]:
-                    robot.arm.rotate_right_step(ARM_STEP)
-                    arm_is_moving = True
-
-                if state["r2"] > 0:
-                    if robot.arm.claw_pos != 120:
-                        robot.arm.close_claw()
-                        arm_is_moving = True
-
-                elif state["l2"] > 0:
-                    if robot.arm.claw_pos != 20:
-                        robot.arm.open_claw()
-                        arm_is_moving = True
-
-                if arm_is_moving and not arm_moving:
-                    print("Moving arm")
-                    arm_moving = True
-
-                if not arm_is_moving and arm_moving:
-                    print(
-                        f"Arm angles: base={robot.arm.base_pos:.1f}, "
-                        f"mid={robot.arm.mid_pos:.1f}, "
-                        f"orient={robot.arm.orient_pos:.1f}, "
-                        f"claw={robot.arm.claw_pos:.1f}"
-                    )
-                    arm_moving = False
-
-                time.sleep(0.03)
-
-        except KeyboardInterrupt:
-            print("Stopping robot...")
-            robot.motors.stop()
-            controller.close()
+        if active_motion == "forward":
+            move_forward()
+        elif active_motion == "backward":
+            move_backward()
+        elif active_motion == "left":
+            slide_left()
+        elif active_motion == "right":
+            slide_right()
+        elif active_motion == "turn_left":
+            turn_left()
+        elif active_motion == "turn_right":
+            turn_right()
+        else:
+            stop_motors()
 
 except KeyboardInterrupt:
     print("\nShutting down...")
