@@ -1,13 +1,18 @@
 import time
+import sys
+from pathlib import Path
+
+controller_path = Path('/home/megan/iae_robot')
+sys.path.append(str(controller_path))
+
 from Libraries.functions import Robot
 from Libraries.controller_map import PS5Controller
 
 robot = Robot()
 controller = PS5Controller()
 
-import sys
 import threading
-from pathlib import Path
+
 
 sys.path.append("/home/megan/ACP/python")
 sys.path.append("/home/megan/MasterPi/masterpi_sdk/common_sdk")
