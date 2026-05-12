@@ -322,43 +322,6 @@ def robot_publish_loop():
 
             print(f"\nSonar: {dist_cm:.2f} cm")
 
-            robot_pub.post_message(
-                {
-                    "sensor_id": "Robot_001_TANK",
-                    "sensor_type": "ROBOT_STATE",
-                    "data_type": "telemetry",
-                    "timestamp": time.time(),
-                    "units": "mixed",
-                    "data": {
-                        "sonar_cm": dist_cm,
-
-                        "motors": {
-                            "left_motor": {
-                                "direction": speed_to_direction(left_motor),
-                                "speed": abs(left_motor)
-                            },
-                            "right_motor": {
-                                "direction": speed_to_direction(right_motor),
-                                "speed": abs(right_motor)
-                            }
-                        },
-
-                        "arm": {
-                            "base_servo": robot.arm.base_pos,
-                            "mid_servo": robot.arm.mid_pos,
-                            "claw_orientation": robot.arm.orient_pos,
-                            "claw_angle": robot.arm.claw_pos,
-                            "claw_state": "closed" if robot.arm.claw_pos >= 100 else "open"
-                        },
-
-                        "camera": {
-                            "pan_angle": robot.camera.pan_pos,
-                            "tilt_angle": robot.camera.tilt_pos
-                        }
-                    }
-                },
-                "robot_state"
-            )
 
             robot_pub.post_message(
                 {
