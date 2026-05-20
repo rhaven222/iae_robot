@@ -13,12 +13,12 @@ robot = Robot()
 motor_state = create_motor_state()
 camera_state = create_camera_state(robot)
 
-TURN_SPEED = 0.12
-RAMP_STEPS = [0.04, 0.06, 0.08, 0.10, 0.12]
-RAMP_DELAY = 0.2
+TURN_SPEED = 0.08
+PULSE_TIME = 0.15
+REST_TIME = 0.35
 
-MIN_TURN_TIME = 6.0
-MAX_TURN_TIME = 22.0
+MIN_COMPARE_TIME = 8.0
+MAX_TURN_TIME = 30.0
 MATCH_THRESHOLD = 45
 
 center_camera(robot, camera_state)
@@ -36,19 +36,18 @@ time.sleep(1)
 orb = cv2.ORB_create(nfeatures=1000)
 matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
 
-# Slowly start the turn to reduce brownout current spikes
-def start_smooth_right_turn():
-    for speed in RAMP_STEPS:
-        drive_robot(robot, motor_state, speed, -speed)
-        time.sleep(RAMP_DELAY)
+# Turn in short pulses to reduce brownout
+def pulse_right_turn():
+    drive_robot(robot, motor_state, TURN_SPEED, -TURN_SPEED)
+    time.sleep(PULSE_TIME)
+    stop_robot(robot, motor_state)
+    time.sleep(REST_TIME)
 
 # Get a frame from the USB camera
 def get_frame():
     ret, frame = cap.read()
-
     if not ret:
         return None
-
     return frame
 
 # Get ORB visual features from a frame
@@ -92,13 +91,14 @@ try:
         cap.release()
         sys.exit()
 
-    print("Starting visual 360 turn with smooth ramp...")
+    print("Starting initial 360 survey...")
+    print("The robot will ignore image matching until later in the turn.")
 
     start_time = time.time()
 
-    start_smooth_right_turn()
-
     while True:
+        pulse_right_turn()
+
         elapsed_time = time.time() - start_time
 
         current_frame = get_frame()
@@ -107,21 +107,22 @@ try:
             print("Camera frame read failed.")
             continue
 
-        current_keypoints, current_descriptors = get_features(current_frame)
+        if elapsed_time < MIN_COMPARE_TIME:
+            print(f"Time: {elapsed_time:.2f}s | Surveying, not comparing yet")
+            continue
 
+        current_keypoints, current_descriptors = get_features(current_frame)
         match_score = compare_frames(start_descriptors, current_descriptors)
 
         print(f"Time: {elapsed_time:.2f}s | Match score: {match_score}")
 
-        if elapsed_time > MIN_TURN_TIME and match_score >= MATCH_THRESHOLD:
+        if match_score >= MATCH_THRESHOLD:
             print("Starting view found again. 360 turn complete.")
             break
 
         if elapsed_time > MAX_TURN_TIME:
             print("Max turn time reached. Stopping anyway.")
             break
-
-        time.sleep(0.1)
 
 except KeyboardInterrupt:
     print("Stopping visual 360 test...")
