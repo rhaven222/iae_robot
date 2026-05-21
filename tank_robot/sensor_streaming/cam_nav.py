@@ -39,8 +39,10 @@ orb = cv2.ORB_create(nfeatures=1500)
 matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=False)
 
 def capture_photo(index=None):
-    img = cap.capture_array()
-    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+    ret, img = cap.read()
+    if not ret:
+        print("Failed to capture photo.")
+        return
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     suffix = f"_{index}" if index is not None else ""
     photo_path = f"photo_{timestamp}{suffix}.jpg"
