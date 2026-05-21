@@ -167,6 +167,22 @@ class SmoothServoGroup:
 
 # Control the robot arm servos
 class Arm(SmoothServoGroup):
+    
+    # Move arm to startup position without moving all servos at once
+    def startup_position(self):
+        self.set_claw_direct(90)
+        time.sleep(0.2)
+
+        self.set_orient_direct(90)
+        time.sleep(0.2)
+
+        self.set_mid_direct(90)
+        time.sleep(0.2)
+
+        self.set_base_direct(90)
+        time.sleep(0.2)
+
+
     def __init__(self, pca):
         super().__init__(pca)
         self.claw = servo.Servo(self.pca.channels[12])
@@ -177,7 +193,7 @@ class Arm(SmoothServoGroup):
         self.orient_pos = 90
         self.mid_pos = 90
         self.base_pos = 90
-        self.set_all(90, 90, 90, 90)
+        self.startup_position()
 
     # Set all arm servos directly
     def set_all(self, claw, orient, mid, base):

@@ -21,13 +21,13 @@ RAMP_DELAY = 0.25
 
 MIN_COMPARE_TIME = 20.0
 MAX_TURN_TIME = 35.0
-MATCH_THRESHOLD = 60
+MATCH_THRESHOLD = 100
 
 center_camera(robot, camera_state)
 
 cap = cv2.VideoCapture(0)
-cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
 
 if not cap.isOpened():
     print("Could not open USB camera")
