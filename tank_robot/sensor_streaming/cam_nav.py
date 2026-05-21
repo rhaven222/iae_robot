@@ -14,13 +14,13 @@ robot = Robot()
 motor_state = create_motor_state()
 camera_state = create_camera_state(robot)
 
-TURN_SPEED = 0.18
+TURN_SPEED = 0.2
 RAMP_START = 0.08
 RAMP_STEP = 0.02
 RAMP_DELAY = 0.25
 
-MIN_COMPARE_TIME = 20.0
-MAX_TURN_TIME = 35.0
+MIN_COMPARE_TIME = 15.0
+MAX_TURN_TIME = 45.0
 MATCH_THRESHOLD = 100
 
 center_camera(robot, camera_state)
