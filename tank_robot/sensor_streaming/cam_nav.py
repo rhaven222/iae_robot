@@ -4,6 +4,7 @@
 import sys
 import time
 import cv2
+import numpy as np
 
 sys.path.append("/home/megan/iae_robot/tank_robot/sensor_streaming")
 
@@ -19,8 +20,8 @@ RAMP_STEP = 0.02
 RAMP_DELAY = 0.25
 
 MIN_COMPARE_TIME = 20.0
-MAX_TURN_TIME = 40.0
-MATCH_THRESHOLD = 450
+MAX_TURN_TIME = 35.0
+MATCH_THRESHOLD = 60
 
 center_camera(robot, camera_state)
 
@@ -34,8 +35,8 @@ if not cap.isOpened():
 
 time.sleep(1)
 
-orb = cv2.ORB_create(nfeatures=1000)
-matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+orb = cv2.ORB_create(nfeatures=1500)
+matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=False)
 
 # Slowly ramp into the turn so the robot moves without a hard current spike
 def start_right_turn_smooth():
@@ -63,21 +64,51 @@ def get_features(frame):
     keypoints, descriptors = orb.detectAndCompute(gray, None)
     return keypoints, descriptors
 
-# Compare the current image to the starting image
-def compare_frames(start_descriptors, current_descriptors):
+# Compare the current image to the starting image using ratio test and RANSAC
+def compare_frames(start_keypoints, start_descriptors, current_keypoints, current_descriptors):
     if start_descriptors is None or current_descriptors is None:
         return 0
 
-    matches = matcher.match(start_descriptors, current_descriptors)
-    matches = sorted(matches, key=lambda x: x.distance)
+    if len(start_descriptors) < 2 or len(current_descriptors) < 2:
+        return 0
+
+    matches = matcher.knnMatch(start_descriptors, current_descriptors, k=2)
 
     good_matches = []
 
-    for match in matches:
-        if match.distance < 60:
-            good_matches.append(match)
+    for pair in matches:
+        if len(pair) < 2:
+            continue
 
-    return len(good_matches)
+        best_match, second_best_match = pair
+
+        if best_match.distance < 0.75 * second_best_match.distance:
+            good_matches.append(best_match)
+
+    if len(good_matches) < 8:
+        return len(good_matches)
+
+    start_points = []
+    current_points = []
+
+    for match in good_matches:
+        start_points.append(start_keypoints[match.queryIdx].pt)
+        current_points.append(current_keypoints[match.trainIdx].pt)
+
+    start_points = np.float32(start_points).reshape(-1, 1, 2)
+    current_points = np.float32(current_points).reshape(-1, 1, 2)
+
+    _, mask = cv2.findHomography(
+        start_points,
+        current_points,
+        cv2.RANSAC,
+        5.0
+    )
+
+    if mask is None:
+        return len(good_matches)
+
+    return int(mask.sum())
 
 try:
     print("Camera centered and pointing straight.")
@@ -98,7 +129,7 @@ try:
         cap.release()
         sys.exit()
 
-    print("Starting initial 360 survey with smooth ramp.")
+    print("Starting initial 360 survey with improved ORB matching.")
     print("The robot will ignore image matching until later in the turn.")
 
     start_time = time.time()
@@ -120,9 +151,15 @@ try:
             continue
 
         current_keypoints, current_descriptors = get_features(current_frame)
-        match_score = compare_frames(start_descriptors, current_descriptors)
 
-        print(f"Time: {elapsed_time:.2f}s | Match score: {match_score}")
+        match_score = compare_frames(
+            start_keypoints,
+            start_descriptors,
+            current_keypoints,
+            current_descriptors
+        )
+
+        print(f"Time: {elapsed_time:.2f}s | RANSAC match score: {match_score}")
 
         if match_score >= MATCH_THRESHOLD:
             print("Starting view found again. 360 turn complete.")
