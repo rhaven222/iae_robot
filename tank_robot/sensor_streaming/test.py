@@ -24,23 +24,23 @@ def detect_lines(frame):
 
     blurred = cv2.GaussianBlur(
         gray,
-        (5, 5),
+        (7, 7),
         0
     )
 
     edges = cv2.Canny(
         blurred,
-        50,
-        150
+        120,
+        220
     )
 
     lines = cv2.HoughLinesP(
         edges,
         rho=1,
         theta=3.14159 / 180,
-        threshold=60,
-        minLineLength=60,
-        maxLineGap=15
+        threshold=100,
+        minLineLength=120,
+        maxLineGap=25
     )
 
     output = frame.copy()
@@ -53,12 +53,17 @@ def detect_lines(frame):
 
             x1, y1, x2, y2 = line[0]
 
+            length = ((x2 - x1)**2 + (y2 - y1)**2) ** 0.5
+
+            if length < 100:
+                continue
+
             cv2.line(
                 output,
                 (x1, y1),
                 (x2, y2),
                 (0, 255, 0),
-                2
+                3
             )
 
             line_count += 1
