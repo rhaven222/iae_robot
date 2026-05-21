@@ -38,6 +38,15 @@ time.sleep(1)
 orb = cv2.ORB_create(nfeatures=1500)
 matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=False)
 
+def capture_photo(index=None):
+    img = cap.capture_array()
+    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+    timestamp = time.strftime("%Y%m%d_%H%M%S")
+    suffix = f"_{index}" if index is not None else ""
+    photo_path = f"photo_{timestamp}{suffix}.jpg"
+    cv2.imwrite(photo_path, img)
+    print(f"Photo captured and saved at: {photo_path}")
+
 # Slowly ramp into the turn so the robot moves without a hard current spike
 def start_right_turn_smooth():
     speed = RAMP_START
@@ -116,6 +125,7 @@ try:
 
     print("Taking starting picture...")
     start_frame = get_frame()
+    capture_photo(1)
 
     if start_frame is None:
         print("Could not read starting camera frame.")
@@ -146,8 +156,6 @@ try:
             continue
 
         if elapsed_time < MIN_COMPARE_TIME:
-            print(f"Time: {elapsed_time:.2f}s | Surveying, not comparing yet")
-            time.sleep(0.1)
             continue
 
         current_keypoints, current_descriptors = get_features(current_frame)
@@ -163,6 +171,7 @@ try:
 
         if match_score >= MATCH_THRESHOLD:
             print("Starting view found again. 360 turn complete.")
+            capture_photo(2)
             break
 
         if elapsed_time > MAX_TURN_TIME:
