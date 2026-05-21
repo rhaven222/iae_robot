@@ -43,10 +43,20 @@ def capture_photo(index=None):
     if not ret:
         print("Failed to capture photo.")
         return
+
+    keypoints, descriptors = get_features(img)
+    orb_img = cv2.drawKeypoints(
+        img,
+        keypoints,
+        None,
+        color=(0, 255, 0),
+        flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS
+    )
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     suffix = f"_{index}" if index is not None else ""
     photo_path = f"photo_{timestamp}{suffix}.jpg"
-    cv2.imwrite(photo_path, img)
+    cv2.imwrite(photo_path, orb_img)
+
     print(f"Photo captured and saved at: {photo_path}")
 
 # Slowly ramp into the turn so the robot moves without a hard current spike
