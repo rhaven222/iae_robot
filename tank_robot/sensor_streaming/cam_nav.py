@@ -3,6 +3,7 @@
 
 import sys
 import time
+import math
 import cv2
 import numpy as np
 
@@ -10,190 +11,258 @@ sys.path.append("/home/megan/iae_robot/tank_robot/sensor_streaming")
 
 from common.functions import *
 
+# =======================
+# Robot setup
+# =======================
+
 robot = Robot()
 motor_state = create_motor_state()
-camera_state = create_camera_state(robot)
 
-TURN_SPEED = 0.2
-RAMP_START = 0.08
-RAMP_STEP = 0.02
-RAMP_DELAY = 0.25
+AUTO_MOVE = True
+FORWARD_SPEED = 0.12
+TEST_TIME = 20.0
 
-MIN_COMPARE_TIME = 15.0
-MAX_TURN_TIME = 45.0
-MATCH_THRESHOLD = 100
-
-center_camera(robot, camera_state)
+# =======================
+# Camera setup
+# =======================
 
 cap = cv2.VideoCapture(0)
-cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+
+W, H = 640, 480
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, W)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, H)
 
 if not cap.isOpened():
-    print("Could not open USB camera")
+    print("Could not open camera")
     sys.exit()
 
-time.sleep(1)
+# Rough camera matrix. Later replace this with real calibration.
+F = 500
+K = np.array([
+    [F, 0, W / 2],
+    [0, F, H / 2],
+    [0, 0, 1]
+], dtype=np.float32)
+
+# =======================
+# ORB setup
+# =======================
 
 orb = cv2.ORB_create(nfeatures=1500)
 matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=False)
 
-def capture_photo(index=None):
-    ret, img = cap.read()
-    if not ret:
-        print("Failed to capture photo.")
-        return
+# =======================
+# Map setup
+# =======================
 
-    keypoints, descriptors = get_features(img)
-    orb_img = cv2.drawKeypoints(
-        img,
-        keypoints,
-        None,
-        color=(0, 255, 0),
-        flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS
-    )
-    timestamp = time.strftime("%Y%m%d_%H%M%S")
-    suffix = f"_{index}" if index is not None else ""
-    photo_path = f"photo_{timestamp}{suffix}.jpg"
-    cv2.imwrite(photo_path, orb_img)
+map_size = 600
+map_img = np.zeros((map_size, map_size, 3), dtype=np.uint8)
 
-    print(f"Photo captured and saved at: {photo_path}")
+map_center_x = map_size // 2
+map_center_y = map_size // 2
 
-# Slowly ramp into the turn so the robot moves without a hard current spike
-def start_right_turn_smooth():
-    speed = RAMP_START
+path_x = 0.0
+path_z = 0.0
+heading = 0.0
 
-    while speed < TURN_SPEED:
-        drive_robot(robot, motor_state, speed, -speed)
-        time.sleep(RAMP_DELAY)
-        speed += RAMP_STEP
+last_draw_point = (map_center_x, map_center_y)
 
-    drive_robot(robot, motor_state, TURN_SPEED, -TURN_SPEED)
+prev_gray = None
+prev_kp = None
+prev_des = None
 
-# Get a frame from the USB camera
-def get_frame():
-    ret, frame = cap.read()
+frame_count = 0
 
-    if not ret:
-        return None
+# =======================
+# Helpers
+# =======================
 
-    return frame
-
-# Get ORB visual features from a frame
-def get_features(frame):
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+def get_features(gray):
     keypoints, descriptors = orb.detectAndCompute(gray, None)
     return keypoints, descriptors
 
-# Compare the current image to the starting image using ratio test and RANSAC
-def compare_frames(start_keypoints, start_descriptors, current_keypoints, current_descriptors):
-    if start_descriptors is None or current_descriptors is None:
-        return 0
 
-    if len(start_descriptors) < 2 or len(current_descriptors) < 2:
-        return 0
+def get_good_matches(des1, des2):
+    if des1 is None or des2 is None:
+        return []
 
-    matches = matcher.knnMatch(start_descriptors, current_descriptors, k=2)
+    if len(des1) < 2 or len(des2) < 2:
+        return []
 
-    good_matches = []
+    matches = matcher.knnMatch(des1, des2, k=2)
+
+    good = []
 
     for pair in matches:
         if len(pair) < 2:
             continue
 
-        best_match, second_best_match = pair
+        m, n = pair
 
-        if best_match.distance < 0.75 * second_best_match.distance:
-            good_matches.append(best_match)
+        if m.distance < 0.75 * n.distance:
+            good.append(m)
 
-    if len(good_matches) < 8:
-        return len(good_matches)
+    return good
 
-    start_points = []
-    current_points = []
 
-    for match in good_matches:
-        start_points.append(start_keypoints[match.queryIdx].pt)
-        current_points.append(current_keypoints[match.trainIdx].pt)
+def rotation_to_yaw(R):
+    yaw = math.atan2(R[1, 0], R[0, 0])
+    return yaw
 
-    start_points = np.float32(start_points).reshape(-1, 1, 2)
-    current_points = np.float32(current_points).reshape(-1, 1, 2)
 
-    _, mask = cv2.findHomography(
-        start_points,
-        current_points,
-        cv2.RANSAC,
-        5.0
+def save_view(feature_frame):
+    display_map = map_img.copy()
+
+    cv2.circle(display_map, last_draw_point, 6, (0, 0, 255), -1)
+
+    cv2.putText(
+        display_map,
+        "Autonomous Visual Odometry",
+        (20, 30),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.75,
+        (255, 255, 255),
+        2
     )
 
-    if mask is None:
-        return len(good_matches)
+    map_small = cv2.resize(display_map, (640, 480))
+    camera_small = cv2.resize(feature_frame, (640, 480))
 
-    return int(mask.sum())
+    viewer = np.hstack((map_small, camera_small))
+
+    cv2.imwrite("vo_view.jpg", viewer)
+    print("Saved vo_view.jpg")
+
+
+# =======================
+# Main program
+# =======================
 
 try:
-    print("Camera centered and pointing straight.")
-    time.sleep(0.5)
-
-    print("Taking starting picture...")
-    start_frame = get_frame()
-    capture_photo(1)
-
-    if start_frame is None:
-        print("Could not read starting camera frame.")
-        sys.exit()
-
-    start_keypoints, start_descriptors = get_features(start_frame)
-
-    if start_descriptors is None:
-        print("Could not find enough features in starting image.")
-        stop_robot(robot, motor_state)
-        cap.release()
-        sys.exit()
-
-    print("Starting initial 360 survey with improved ORB matching.")
-    print("The robot will ignore image matching until later in the turn.")
+    print("Starting autonomous visual odometry test.")
+    print(f"Forward speed: {FORWARD_SPEED}")
+    print(f"Test time: {TEST_TIME} seconds")
 
     start_time = time.time()
 
-    start_right_turn_smooth()
+    if AUTO_MOVE:
+        drive_robot(robot, motor_state, FORWARD_SPEED, FORWARD_SPEED)
 
     while True:
         elapsed_time = time.time() - start_time
 
-        current_frame = get_frame()
+        if elapsed_time > TEST_TIME:
+            print("Test time complete.")
+            break
 
-        if current_frame is None:
-            print("Camera frame read failed.")
+        ret, frame = cap.read()
+
+        if not ret:
+            print("Camera read failed")
+            time.sleep(0.1)
             continue
 
-        if elapsed_time < MIN_COMPARE_TIME:
-            continue
+        frame = cv2.resize(frame, (W, H))
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-        current_keypoints, current_descriptors = get_features(current_frame)
+        kp, des = get_features(gray)
 
-        match_score = compare_frames(
-            start_keypoints,
-            start_descriptors,
-            current_keypoints,
-            current_descriptors
+        feature_frame = cv2.drawKeypoints(
+            frame,
+            kp,
+            None,
+            color=(0, 255, 0),
+            flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS
         )
 
-        print(f"Time: {elapsed_time:.2f}s | RANSAC match score: {match_score}")
+        if prev_gray is not None:
+            good = get_good_matches(prev_des, des)
 
-        if match_score >= MATCH_THRESHOLD:
-            print("Starting view found again. 360 turn complete.")
-            capture_photo(2)
-            break
+            if len(good) > 30:
+                pts1 = np.float32([prev_kp[m.queryIdx].pt for m in good])
+                pts2 = np.float32([kp[m.trainIdx].pt for m in good])
 
-        if elapsed_time > MAX_TURN_TIME:
-            print("Max turn time reached. Stopping anyway.")
-            break
+                pixel_shift = np.mean(np.linalg.norm(pts2 - pts1, axis=1))
+
+                if pixel_shift > 2.0:
+                    E, mask = cv2.findEssentialMat(
+                        pts2,
+                        pts1,
+                        K,
+                        method=cv2.RANSAC,
+                        prob=0.999,
+                        threshold=1.0
+                    )
+
+                    if E is not None:
+                        _, R, t, pose_mask = cv2.recoverPose(E, pts2, pts1, K)
+
+                        dx = float(t[0][0])
+                        dz = float(t[2][0])
+                        dtheta = rotation_to_yaw(R)
+
+                        heading += dtheta
+
+                        # Monocular VO does not know real distance.
+                        # This scale only makes the map movement visible.
+                        scale = 3.0
+
+                        path_x += math.sin(heading) * dz * scale
+                        path_z += math.cos(heading) * dz * scale
+
+                        draw_x = int(map_center_x + path_x)
+                        draw_y = int(map_center_y - path_z)
+
+                        draw_x = max(0, min(map_size - 1, draw_x))
+                        draw_y = max(0, min(map_size - 1, draw_y))
+
+                        current_draw_point = (draw_x, draw_y)
+
+                        cv2.line(
+                            map_img,
+                            last_draw_point,
+                            current_draw_point,
+                            (0, 255, 0),
+                            2
+                        )
+
+                        last_draw_point = current_draw_point
+
+                        print(
+                            f"time={elapsed_time:.2f}s "
+                            f"matches={len(good)} "
+                            f"shift={pixel_shift:.2f} "
+                            f"dx={dx:.3f} "
+                            f"dz={dz:.3f} "
+                            f"heading={math.degrees(heading):.1f}"
+                        )
+                else:
+                    print(
+                        f"time={elapsed_time:.2f}s "
+                        f"matches={len(good)} "
+                        f"shift={pixel_shift:.2f} "
+                        f"not enough motion"
+                    )
+            else:
+                print(
+                    f"time={elapsed_time:.2f}s "
+                    f"matches={len(good)} "
+                    f"not enough matches"
+                )
+
+        frame_count += 1
+
+        if frame_count % 5 == 0:
+            save_view(feature_frame)
+
+        prev_gray = gray
+        prev_kp = kp
+        prev_des = des
 
         time.sleep(0.1)
 
 except KeyboardInterrupt:
-    print("Stopping visual 360 test...")
+    print("Stopping visual odometry test...")
 
 finally:
     stop_robot(robot, motor_state)
