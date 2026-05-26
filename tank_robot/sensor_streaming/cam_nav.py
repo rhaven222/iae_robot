@@ -55,10 +55,15 @@ last_draw_point = (map_center_x, map_center_y)
 
 prev_kp = None
 prev_des = None
+prev_track_ids = []
 
 frame_count = 0
 keyframes = []
 map_points = []
+
+next_track_id = 0
+tracks = {}
+MIN_TRACK_LENGTH = 4
 
 global_R = np.eye(3)
 global_t = np.zeros((3, 1))
@@ -110,28 +115,66 @@ def add_keyframe(kp, des, R_world, t_world):
     print(f"Saved keyframe {len(keyframes)}")
 
 
-def triangulate_from_keyframe(current_kp, current_des, current_R, current_t):
-    if len(keyframes) == 0:
+def update_tracks(kp, good_matches):
+    global next_track_id
+
+    current_track_ids = [-1] * len(kp)
+
+    for match in good_matches:
+        if match.queryIdx >= len(prev_track_ids):
+            continue
+
+        track_id = prev_track_ids[match.queryIdx]
+
+        if track_id == -1:
+            track_id = next_track_id
+            next_track_id += 1
+
+        current_track_ids[match.trainIdx] = track_id
+
+        if track_id not in tracks:
+            tracks[track_id] = []
+
+        tracks[track_id].append({
+            "frame": frame_count,
+            "pt": kp[match.trainIdx].pt
+        })
+
+    return current_track_ids
+
+
+def get_stable_matches(good_matches):
+    stable = []
+
+    for match in good_matches:
+        if match.queryIdx >= len(prev_track_ids):
+            continue
+
+        track_id = prev_track_ids[match.queryIdx]
+
+        if track_id in tracks and len(tracks[track_id]) >= MIN_TRACK_LENGTH:
+            stable.append(match)
+
+    return stable
+
+
+def triangulate_stable_points(R, t, pts1, pts2, pose_mask):
+    inlier_mask = pose_mask.ravel() > 0
+
+    pts1_inliers = pts1[inlier_mask]
+    pts2_inliers = pts2[inlier_mask]
+
+    if len(pts1_inliers) < 8:
         return
 
-    keyframe = keyframes[-1]
-
-    good = get_good_matches(keyframe["descriptors"], current_des)
-
-    if len(good) < 20:
-        return
-
-    pts1 = np.float32([keyframe["keypoints"][m.queryIdx].pt for m in good])
-    pts2 = np.float32([current_kp[m.trainIdx].pt for m in good])
-
-    P1 = K @ np.hstack((keyframe["R"], keyframe["t"]))
-    P2 = K @ np.hstack((current_R, current_t))
+    P1 = K @ np.hstack((np.eye(3), np.zeros((3, 1))))
+    P2 = K @ np.hstack((R, t))
 
     points_4d = cv2.triangulatePoints(
         P1,
         P2,
-        pts1.T,
-        pts2.T
+        pts1_inliers.T,
+        pts2_inliers.T
     )
 
     points_3d = points_4d[:3] / points_4d[3]
@@ -142,6 +185,9 @@ def triangulate_from_keyframe(current_kp, current_des, current_R, current_t):
         z3d = float(points_3d[2, i])
 
         if not np.isfinite(x3d) or not np.isfinite(z3d):
+            continue
+
+        if z3d <= 0:
             continue
 
         if abs(x3d) > 50 or abs(z3d) > 50:
@@ -155,7 +201,7 @@ def redraw_sparse_map():
 
     cv2.putText(
         sparse_map,
-        "Persistent Sparse Map",
+        "Stable Sparse Map",
         (20, 30),
         cv2.FONT_HERSHEY_SIMPLEX,
         0.65,
@@ -195,12 +241,12 @@ def save_view(feature_frame):
 
     viewer = np.hstack((path_small, sparse_small, camera_small))
 
-    cv2.imwrite("sift_flann_keyframe_map_view.jpg", viewer)
-    print("Saved sift_flann_keyframe_map_view.jpg")
+    cv2.imwrite("sift_flann_tracked_map_view.jpg", viewer)
+    print("Saved sift_flann_tracked_map_view.jpg")
 
 
 try:
-    print("Starting autonomous SIFT + FLANN VO with persistent keyframe mapping.")
+    print("Starting SIFT + FLANN VO with persistent feature tracks.")
     print(f"Forward speed: {FORWARD_SPEED}")
     print(f"Test time: {TEST_TIME} seconds")
 
@@ -236,94 +282,135 @@ try:
             flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS
         )
 
-        if len(keyframes) == 0 and des is not None:
+        if prev_kp is None:
+            prev_kp = kp
+            prev_des = des
+            prev_track_ids = list(range(len(kp)))
+            next_track_id = len(kp)
+
             add_keyframe(kp, des, global_R, global_t)
 
-        if prev_kp is not None and prev_des is not None:
-            good = get_good_matches(prev_des, des)
+            frame_count += 1
+            continue
 
-            if len(good) > 30:
-                pts1 = np.float32([prev_kp[m.queryIdx].pt for m in good])
-                pts2 = np.float32([kp[m.trainIdx].pt for m in good])
+        good = get_good_matches(prev_des, des)
 
-                pixel_shift = np.mean(np.linalg.norm(pts2 - pts1, axis=1))
+        if len(good) > 30:
+            current_track_ids = update_tracks(kp, good)
+            stable_matches = get_stable_matches(good)
 
-                if pixel_shift > 2.0:
-                    E, mask = cv2.findEssentialMat(
-                        pts2,
-                        pts1,
-                        K,
-                        method=cv2.RANSAC,
-                        prob=0.999,
-                        threshold=1.0
+            pts1 = np.float32([prev_kp[m.queryIdx].pt for m in good])
+            pts2 = np.float32([kp[m.trainIdx].pt for m in good])
+
+            pixel_shift = np.mean(np.linalg.norm(pts2 - pts1, axis=1))
+
+            if pixel_shift > 2.0:
+                E, mask = cv2.findEssentialMat(
+                    pts2,
+                    pts1,
+                    K,
+                    method=cv2.RANSAC,
+                    prob=0.999,
+                    threshold=1.0
+                )
+
+                if E is not None:
+                    _, R, t, pose_mask = cv2.recoverPose(E, pts2, pts1, K)
+
+                    global_R = R @ global_R
+                    global_t = global_t + global_R @ t
+
+                    dx = float(t[0][0])
+                    dz = float(t[2][0])
+                    dtheta = rotation_to_yaw(R)
+
+                    heading += dtheta
+
+                    scale = 30.0
+
+                    path_x += math.sin(heading) * dz * scale
+                    path_z += math.cos(heading) * dz * scale
+
+                    draw_x = int(map_center_x + path_x)
+                    draw_y = int(map_center_y - path_z)
+
+                    draw_x = max(0, min(map_size - 1, draw_x))
+                    draw_y = max(0, min(map_size - 1, draw_y))
+
+                    current_draw_point = (draw_x, draw_y)
+
+                    cv2.line(
+                        map_img,
+                        last_draw_point,
+                        current_draw_point,
+                        (0, 255, 0),
+                        2
                     )
 
-                    if E is not None:
-                        _, R, t, pose_mask = cv2.recoverPose(E, pts2, pts1, K)
+                    last_draw_point = current_draw_point
 
-                        global_R = R @ global_R
-                        global_t = global_t + global_R @ t
+                    if len(stable_matches) > 20:
+                        stable_pts1 = np.float32([prev_kp[m.queryIdx].pt for m in stable_matches])
+                        stable_pts2 = np.float32([kp[m.trainIdx].pt for m in stable_matches])
 
-                        dx = float(t[0][0])
-                        dz = float(t[2][0])
-                        dtheta = rotation_to_yaw(R)
-
-                        heading += dtheta
-
-                        scale = 30.0
-
-                        path_x += math.sin(heading) * dz * scale
-                        path_z += math.cos(heading) * dz * scale
-
-                        draw_x = int(map_center_x + path_x)
-                        draw_y = int(map_center_y - path_z)
-
-                        draw_x = max(0, min(map_size - 1, draw_x))
-                        draw_y = max(0, min(map_size - 1, draw_y))
-
-                        current_draw_point = (draw_x, draw_y)
-
-                        cv2.line(
-                            map_img,
-                            last_draw_point,
-                            current_draw_point,
-                            (0, 255, 0),
-                            2
+                        stable_E, stable_mask = cv2.findEssentialMat(
+                            stable_pts2,
+                            stable_pts1,
+                            K,
+                            method=cv2.RANSAC,
+                            prob=0.999,
+                            threshold=1.0
                         )
 
-                        last_draw_point = current_draw_point
+                        if stable_E is not None:
+                            _, stable_R, stable_t, stable_pose_mask = cv2.recoverPose(
+                                stable_E,
+                                stable_pts2,
+                                stable_pts1,
+                                K
+                            )
 
-                        triangulate_from_keyframe(kp, des, global_R, global_t)
+                            triangulate_stable_points(
+                                stable_R,
+                                stable_t,
+                                stable_pts1,
+                                stable_pts2,
+                                stable_pose_mask
+                            )
 
-                        if len(good) < 80 or pixel_shift > 25:
-                            add_keyframe(kp, des, global_R, global_t)
+                    if len(good) < 80 or pixel_shift > 25:
+                        add_keyframe(kp, des, global_R, global_t)
 
-                        redraw_sparse_map()
+                    redraw_sparse_map()
 
-                        print(
-                            f"time={elapsed_time:.2f}s "
-                            f"matches={len(good)} "
-                            f"shift={pixel_shift:.2f} "
-                            f"dx={dx:.3f} "
-                            f"dz={dz:.3f} "
-                            f"heading={math.degrees(heading):.1f} "
-                            f"keyframes={len(keyframes)} "
-                            f"map_points={len(map_points)}"
-                        )
-
-                else:
                     print(
                         f"time={elapsed_time:.2f}s "
                         f"matches={len(good)} "
+                        f"stable={len(stable_matches)} "
                         f"shift={pixel_shift:.2f} "
-                        f"not enough motion"
+                        f"dx={dx:.3f} "
+                        f"dz={dz:.3f} "
+                        f"heading={math.degrees(heading):.1f} "
+                        f"keyframes={len(keyframes)} "
+                        f"tracks={len(tracks)} "
+                        f"map_points={len(map_points)}"
                     )
+
             else:
+                current_track_ids = [-1] * len(kp)
                 print(
                     f"time={elapsed_time:.2f}s "
                     f"matches={len(good)} "
-                    f"not enough matches"
+                    f"shift={pixel_shift:.2f} "
+                    f"not enough motion"
                 )
+        else:
+            current_track_ids = [-1] * len(kp)
+            print(
+                f"time={elapsed_time:.2f}s "
+                f"matches={len(good)} "
+                f"not enough matches"
+            )
 
         frame_count += 1
 
@@ -332,11 +419,12 @@ try:
 
         prev_kp = kp
         prev_des = des
+        prev_track_ids = current_track_ids
 
         time.sleep(0.1)
 
 except KeyboardInterrupt:
-    print("Stopping SIFT + FLANN keyframe mapping test...")
+    print("Stopping SIFT + FLANN tracked mapping test...")
 
 finally:
     stop_robot(robot, motor_state)
