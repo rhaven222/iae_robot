@@ -148,6 +148,19 @@ def save_view(feature_frame):
     print("Saved sift_flann_vo_view.jpg")
 
 
+keyframes = []
+
+def add_keyframe(frame, kp, des, R, t):
+    keyframes.append({
+        "frame": frame.copy(),
+        "keypoints": kp,
+        "descriptors": des,
+        "R": R.copy(),
+        "t": t.copy()
+    })
+
+    print(f"Saved keyframe {len(keyframes)}")
+
 # =======================
 # Main program
 # =======================
@@ -212,13 +225,16 @@ try:
                     if E is not None:
                         _, R, t, pose_mask = cv2.recoverPose(E, pts2, pts1, K)
 
+                        if len(keyframes) == 0 or len(good) < 80:
+                            add_keyframe(frame, kp, des, R, t)
+
                         dx = float(t[0][0])
                         dz = float(t[2][0])
                         dtheta = rotation_to_yaw(R)
 
                         heading += dtheta
 
-                        scale = 3.0
+                        scale = 30.0
 
                         path_x += math.sin(heading) * dz * scale
                         path_z += math.cos(heading) * dz * scale
