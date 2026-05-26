@@ -10,23 +10,22 @@ import numpy as np
 sys.path.append("/home/megan/iae_robot/tank_robot/sensor_streaming")
 from common.functions import *
 
-# =======================
-# Robot setup
-# =======================
-
 robot = Robot()
 motor_state = create_motor_state()
 
 FORWARD_SPEED = 0.10
 TEST_TIME = 20.0
 
-# =======================
-# Camera setup
-# =======================
+W, H = 640, 480
+F = 500
+
+K = np.array([
+    [F, 0, W / 2],
+    [0, F, H / 2],
+    [0, 0, 1]
+], dtype=np.float32)
 
 cap = cv2.VideoCapture(0)
-
-W, H = 640, 480
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, W)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, H)
 
@@ -34,40 +33,16 @@ if not cap.isOpened():
     print("Could not open camera")
     sys.exit()
 
-# Rough camera matrix.
-# Later replace this with real camera calibration.
-F = 500
-K = np.array([
-    [F, 0, W / 2],
-    [0, F, H / 2],
-    [0, 0, 1]
-], dtype=np.float32)
-
-# =======================
-# SIFT + FLANN setup
-# =======================
-
 sift = cv2.SIFT_create(nfeatures=1500)
 
-FLANN_INDEX_KDTREE = 1
-
-index_params = {
-    "algorithm": FLANN_INDEX_KDTREE,
-    "trees": 5
-}
-
-search_params = {
-    "checks": 50
-}
-
-matcher = cv2.FlannBasedMatcher(index_params, search_params)
-
-# =======================
-# Map setup
-# =======================
+matcher = cv2.FlannBasedMatcher(
+    {"algorithm": 1, "trees": 5},
+    {"checks": 50}
+)
 
 map_size = 600
 map_img = np.zeros((map_size, map_size, 3), dtype=np.uint8)
+sparse_map = np.zeros((map_size, map_size, 3), dtype=np.uint8)
 
 map_center_x = map_size // 2
 map_center_y = map_size // 2
@@ -78,15 +53,12 @@ heading = 0.0
 
 last_draw_point = (map_center_x, map_center_y)
 
-prev_gray = None
 prev_kp = None
 prev_des = None
 
 frame_count = 0
+keyframes = []
 
-# =======================
-# Helper functions
-# =======================
 
 def get_features(gray):
     keypoints, descriptors = sift.detectAndCompute(gray, None)
@@ -124,35 +96,8 @@ def rotation_to_yaw(R):
     return math.atan2(R[1, 0], R[0, 0])
 
 
-def save_view(feature_frame):
-    display_map = map_img.copy()
-
-    cv2.circle(display_map, last_draw_point, 6, (0, 0, 255), -1)
-
-    cv2.putText(
-        display_map,
-        "SIFT + FLANN Visual Odometry",
-        (20, 30),
-        cv2.FONT_HERSHEY_SIMPLEX,
-        0.7,
-        (255, 255, 255),
-        2
-    )
-
-    map_small = cv2.resize(display_map, (640, 480))
-    camera_small = cv2.resize(feature_frame, (640, 480))
-
-    viewer = np.hstack((map_small, camera_small))
-
-    cv2.imwrite("sift_flann_vo_view.jpg", viewer)
-    print("Saved sift_flann_vo_view.jpg")
-
-
-keyframes = []
-
 def add_keyframe(frame, kp, des, R, t):
     keyframes.append({
-        "frame": frame.copy(),
         "keypoints": kp,
         "descriptors": des,
         "R": R.copy(),
@@ -161,19 +106,89 @@ def add_keyframe(frame, kp, des, R, t):
 
     print(f"Saved keyframe {len(keyframes)}")
 
-# =======================
-# Main program
-# =======================
+
+def draw_triangulated_points(R, t, pts1, pts2, pose_mask):
+    inlier_mask = pose_mask.ravel() > 0
+
+    pts1_inliers = pts1[inlier_mask]
+    pts2_inliers = pts2[inlier_mask]
+
+    if len(pts1_inliers) < 8:
+        return
+
+    P1 = K @ np.hstack((np.eye(3), np.zeros((3, 1))))
+    P2 = K @ np.hstack((R, t))
+
+    points_4d = cv2.triangulatePoints(
+        P1,
+        P2,
+        pts1_inliers.T,
+        pts2_inliers.T
+    )
+
+    points_3d = points_4d[:3] / points_4d[3]
+
+    for i in range(points_3d.shape[1]):
+        x3d = points_3d[0, i]
+        z3d = points_3d[2, i]
+
+        if not np.isfinite(x3d) or not np.isfinite(z3d):
+            continue
+
+        if z3d <= 0:
+            continue
+
+        x = int(x3d * 20 + 300)
+        z = int(z3d * 20 + 300)
+
+        if 0 <= x < map_size and 0 <= z < map_size:
+            cv2.circle(sparse_map, (x, z), 1, (255, 255, 255), -1)
+
+
+def save_view(feature_frame):
+    display_path = map_img.copy()
+    display_sparse = sparse_map.copy()
+
+    cv2.circle(display_path, last_draw_point, 6, (0, 0, 255), -1)
+
+    cv2.putText(
+        display_path,
+        "VO Path",
+        (20, 30),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.7,
+        (255, 255, 255),
+        2
+    )
+
+    cv2.putText(
+        display_sparse,
+        "Sparse Map",
+        (20, 30),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.7,
+        (255, 255, 255),
+        2
+    )
+
+    path_small = cv2.resize(display_path, (426, 480))
+    sparse_small = cv2.resize(display_sparse, (426, 480))
+    camera_small = cv2.resize(feature_frame, (426, 480))
+
+    viewer = np.hstack((path_small, sparse_small, camera_small))
+
+    cv2.imwrite("sift_flann_vo_map_view.jpg", viewer)
+    print("Saved sift_flann_vo_map_view.jpg")
+
 
 try:
-    print("Starting autonomous SIFT + FLANN visual odometry test.")
+    print("Starting autonomous SIFT + FLANN VO with sparse mapping.")
     print(f"Forward speed: {FORWARD_SPEED}")
     print(f"Test time: {TEST_TIME} seconds")
 
     time.sleep(1)
 
     start_time = time.time()
-
     drive_robot(robot, motor_state, FORWARD_SPEED, FORWARD_SPEED)
 
     while True:
@@ -203,7 +218,7 @@ try:
             flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS
         )
 
-        if prev_gray is not None:
+        if prev_kp is not None and prev_des is not None:
             good = get_good_matches(prev_des, des)
 
             if len(good) > 30:
@@ -227,6 +242,8 @@ try:
 
                         if len(keyframes) == 0 or len(good) < 80:
                             add_keyframe(frame, kp, des, R, t)
+
+                        draw_triangulated_points(R, t, pts1, pts2, pose_mask)
 
                         dx = float(t[0][0])
                         dz = float(t[2][0])
@@ -263,8 +280,10 @@ try:
                             f"shift={pixel_shift:.2f} "
                             f"dx={dx:.3f} "
                             f"dz={dz:.3f} "
-                            f"heading={math.degrees(heading):.1f}"
+                            f"heading={math.degrees(heading):.1f} "
+                            f"keyframes={len(keyframes)}"
                         )
+
                 else:
                     print(
                         f"time={elapsed_time:.2f}s "
@@ -284,7 +303,6 @@ try:
         if frame_count % 5 == 0:
             save_view(feature_frame)
 
-        prev_gray = gray
         prev_kp = kp
         prev_des = des
 
