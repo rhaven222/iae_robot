@@ -1,7 +1,7 @@
 # Robot camera visual navigation test
 # The robot drives forward slowly while the camera estimates drift and heading change.
 # It uses optical flow to track visual points between frames, then uses Essential Matrix
-# pose estimation to decide if the robot is drifting left or right.
+# pose estimation to correct the left and right motor speeds.
 
 import sys
 import time
@@ -29,10 +29,11 @@ FORWARD_SPEED = 0.22
 SLOW_SPEED = 0.15
 TEST_TIME = 30.0
 
-MIN_TRACKED_POINTS = 60
-MIN_POSE_INLIERS = 40
+MIN_TRACKED_POINTS = 40
+MIN_POSE_INLIERS = 25
 MAX_PIXEL_SHIFT = 120
-MIN_PIXEL_SHIFT = 2.0
+MIN_PIXEL_SHIFT = 1.0
+MAX_LOST_BEFORE_STOP = 8
 
 KP_HEADING = 0.30
 MAX_CORRECTION = 0.05
@@ -70,7 +71,7 @@ def stop():
 
 
 def detect_features(gray):
-    points = cv2.goodFeaturesToTrack(
+    return cv2.goodFeaturesToTrack(
         gray,
         maxCorners=500,
         qualityLevel=0.01,
@@ -78,12 +79,10 @@ def detect_features(gray):
         blockSize=7
     )
 
-    return points
-
 
 def track_features(prev_gray, gray, prev_points):
     if prev_points is None or len(prev_points) == 0:
-        return None, None, None
+        return None, None
 
     next_points, status, error = cv2.calcOpticalFlowPyrLK(
         prev_gray,
@@ -100,14 +99,14 @@ def track_features(prev_gray, gray, prev_points):
     )
 
     if next_points is None or status is None:
-        return None, None, None
+        return None, None
 
     status = status.reshape(-1)
 
     good_prev = prev_points[status == 1]
     good_next = next_points[status == 1]
 
-    return good_prev, good_next, status
+    return good_prev, good_next
 
 
 def rotation_to_yaw(R):
@@ -116,10 +115,18 @@ def rotation_to_yaw(R):
 
 def estimate_motion(prev_points, current_points):
     if prev_points is None or current_points is None:
-        return None
+        return {
+            "valid": False,
+            "reason": "missing points",
+            "pixel_shift": 0.0
+        }
 
     if len(prev_points) < MIN_TRACKED_POINTS:
-        return None
+        return {
+            "valid": False,
+            "reason": "not enough tracked points",
+            "pixel_shift": 0.0
+        }
 
     pts1 = prev_points.reshape(-1, 2).astype(np.float32)
     pts2 = current_points.reshape(-1, 2).astype(np.float32)
@@ -259,6 +266,38 @@ def save_view(frame, points):
     cv2.imwrite("robot_visual_navigation_view.jpg", viewer)
 
 
+def handle_bad_motion(motion):
+    global tracking_lost_count
+
+    reason = motion["reason"]
+    shift = motion["pixel_shift"]
+
+    if reason == "not enough motion":
+        tracking_lost_count = 0
+        set_robot_speed(FORWARD_SPEED, FORWARD_SPEED)
+
+        print(
+            f"Motion small but tracking okay, continuing forward: "
+            f"shift={shift:.2f}"
+        )
+        return
+
+    tracking_lost_count += 1
+
+    print(
+        f"Motion estimate failed: {reason}, "
+        f"shift={shift:.2f}, "
+        f"lost_count={tracking_lost_count}"
+    )
+
+    if tracking_lost_count >= MAX_LOST_BEFORE_STOP:
+        stop()
+        print("Motion tracking lost for too long, robot stopped")
+    else:
+        set_robot_speed(SLOW_SPEED, SLOW_SPEED)
+        print("Motion weak, robot continuing slowly")
+
+
 cap = cv2.VideoCapture(0)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, W)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, H)
@@ -313,7 +352,7 @@ try:
         frame = cv2.resize(frame, (W, H))
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-        prev_good, current_good, status = track_features(
+        prev_good, current_good = track_features(
             prev_gray,
             gray,
             prev_points
@@ -322,17 +361,19 @@ try:
         if current_good is None or len(current_good) < MIN_TRACKED_POINTS:
             tracking_lost_count += 1
 
+            points_seen = 0 if current_good is None else len(current_good)
+
             print(
-                f"Tracking weak: points={0 if current_good is None else len(current_good)}, "
+                f"Tracking weak: points={points_seen}, "
                 f"lost_count={tracking_lost_count}"
             )
 
-            if tracking_lost_count >= 3:
+            if tracking_lost_count >= MAX_LOST_BEFORE_STOP:
                 stop()
-                print("Tracking lost, robot stopped")
+                print("Tracking lost for too long, robot stopped")
             else:
                 set_robot_speed(SLOW_SPEED, SLOW_SPEED)
-                print("Tracking weak, robot slowed")
+                print("Tracking weak, robot continuing slowly")
 
             prev_points = detect_features(gray)
             prev_gray = gray.copy()
@@ -341,25 +382,8 @@ try:
 
         motion = estimate_motion(prev_good, current_good)
 
-        if motion is None or not motion["valid"]:
-            tracking_lost_count += 1
-
-            reason = "unknown" if motion is None else motion["reason"]
-            shift = 0.0 if motion is None else motion["pixel_shift"]
-
-            print(
-                f"Motion estimate failed: {reason}, "
-                f"shift={shift:.2f}, "
-                f"lost_count={tracking_lost_count}"
-            )
-
-            if tracking_lost_count >= 3:
-                stop()
-                print("Motion tracking lost, robot stopped")
-            else:
-                set_robot_speed(SLOW_SPEED, SLOW_SPEED)
-                print("Motion weak, robot slowed")
-
+        if not motion["valid"]:
+            handle_bad_motion(motion)
         else:
             tracking_lost_count = 0
 
@@ -385,8 +409,13 @@ try:
                 f"right={right_speed:.2f}"
             )
 
-        if len(current_good) < FEATURE_REFRESH_COUNT:
-            prev_points = detect_features(gray)
+        if current_good is not None and len(current_good) < FEATURE_REFRESH_COUNT:
+            new_points = detect_features(gray)
+
+            if new_points is not None:
+                prev_points = new_points
+            else:
+                prev_points = current_good.reshape(-1, 1, 2)
         else:
             prev_points = current_good.reshape(-1, 1, 2)
 
