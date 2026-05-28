@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-# coding=utf-8
 
 import sys
 import time
@@ -13,6 +11,14 @@ from common.functions import *
 robot = Robot()
 motor_state = create_motor_state()
 camera_state = create_camera_state(robot)
+
+# This script allows the robot to slowly rotate in place while
+# using its camera to remember different views of the environment.
+# As the robot turns, it saves visual keyframes and attempts to
+# recognize when it has completed a full 360 degree rotation by
+# finding the starting view again. The output includes stored
+# keyframes, estimated heading information, and console data
+# showing how well the current camera view matches previous views.
 
 # =======================
 # Settings
@@ -185,9 +191,6 @@ def assign_keyframe_headings(total_turn_time):
         keyframe["heading_estimate"] = heading
 
 
-# =======================
-# Main program
-# =======================
 
 try:
     print("Camera centered and pointing straight.")

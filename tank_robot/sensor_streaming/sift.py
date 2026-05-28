@@ -1,5 +1,10 @@
-#!/usr/bin/python3
-# coding=utf-8
+# Uses the robot camera to estimate movement and create a
+# simple map of the environment while the robot drives forward.
+# The system tracks visual details between camera frames to
+# estimate position changes, heading, and motion over time.
+# The output includes a visual path map, sparse environmental
+# map points, camera feature visualization, and console data
+# showing how the robot believes it is moving.
 
 import sys
 import time
