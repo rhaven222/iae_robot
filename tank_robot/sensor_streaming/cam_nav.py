@@ -23,9 +23,9 @@ from common.functions import *
 robot = Robot()
 motor_state = create_motor_state()
 
-FORWARD_SPEED = 0.20
-SLOW_SPEED = 0.10
-TEST_TIME = 40.0
+FORWARD_SPEED = 0.25
+SLOW_SPEED = 0.2
+TEST_TIME = 30.0
 
 MIN_MATCHES = 40
 MIN_INLIERS = 35
@@ -36,11 +36,9 @@ RELOCALIZE_EVERY = 10
 RELOCALIZE_INLIERS = 50
 POSE_BLEND = 0.20
 
-TARGET_FORWARD_DISTANCE = 6.0
+TARGET_FORWARD_DISTANCE = 15
 TARGET_TURN_ANGLE = math.radians(90)
 
-TURN_SPEED = 0.07
-SLOW_TURN_SPEED = 0.04
 
 KP_HEADING = 0.35
 MAX_CORRECTION = 0.04
@@ -384,30 +382,15 @@ def run_visual_goal_control(dz, dtheta):
             f"right={right_speed:.2f}"
         )
 
-    elif motion_goal == "TURN_RIGHT":
-        turn_progress += abs(dtheta)
-
-        remaining = TARGET_TURN_ANGLE - turn_progress
-
-        if remaining <= 0:
-            set_robot_speed(0, 0)
-            motion_goal = "DONE"
-
-            desired_heading = heading
-
-            print("Turn goal reached -> movement complete")
-            return
-
-        if remaining < math.radians(15):
-            set_robot_speed(SLOW_TURN_SPEED, -SLOW_TURN_SPEED)
-        else:
-            set_robot_speed(TURN_SPEED, -TURN_SPEED)
-
-    else:
-        set_robot_speed(0, 0)
+    
         
 try:
     print("Starting.")
+    print("Straight Forward - No camera input")
+    drive_robot(robot, motor_state, FORWARD_SPEED, FORWARD_SPEED)
+    time.sleep(5)
+
+    print("Starting camera based navigation test.")
     print(f"Forward speed: {FORWARD_SPEED}")
     print(f"Test time: {TEST_TIME} seconds")
 
