@@ -26,7 +26,7 @@ common_sdk_root = Path('/home/megan/MasterPi/masterpi_sdk/common_sdk')
 sys.path.append(str(common_sdk_root))
 
 from common.ros_robot2_controller_sdk import Board
-import common.sonar as Sonar
+import sensor_streaming.common.sensors as Sonar
 
 # =======================
 # Network config

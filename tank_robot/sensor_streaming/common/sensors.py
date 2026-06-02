@@ -4,10 +4,7 @@
 import sys
 import time
 from gpiozero import DistanceSensor
-
-if sys.version_info.major == 2:
-    print("Please run this program with python3!")
-    sys.exit(0)
+from mpu6050 import mpu6050
 
 
 class Sonar:
@@ -91,9 +88,70 @@ class Sonar:
         pass
 
 
-if __name__ == "__main__":
-    s = Sonar()
 
-    while True:
-        print(f"{s.getDistance() / 10.0:.2f} cm")
-        time.sleep(0.2)
+class Gyro:
+    def __init__(self, address=0x68):
+        self.address = address
+        self.sensor = mpu6050(self.address)
+
+        self.gyro_z_offset = 0.0
+        self.heading_deg = 0.0
+        self.last_time = None
+
+        print("MPU-6050 initialized")
+
+    def get_gyro_data(self):
+        return self.sensor.get_gyro_data()
+
+    def get_accel_data(self):
+        return self.sensor.get_accel_data()
+
+    def get_sensor_data(self):
+        return {
+            "gyro": self.get_gyro_data(),
+            "accel": self.get_accel_data(),
+            "heading": self.get_heading()
+        }
+
+    def calibrate(self, samples=200):
+        print("Calibrating gyro. Keep robot still...")
+
+        total_z = 0.0
+
+        for _ in range(samples):
+            gyro = self.sensor.get_gyro_data()
+            total_z += gyro["z"]
+            time.sleep(0.01)
+
+        self.gyro_z_offset = total_z / samples
+        self.reset_heading()
+
+        print(f"Gyro calibrated. Z offset: {self.gyro_z_offset:.3f}")
+
+    def reset_heading(self):
+        self.heading_deg = 0.0
+        self.last_time = time.time()
+
+    def update_heading(self):
+        now = time.time()
+
+        if self.last_time is None:
+            self.last_time = now
+            return self.heading_deg
+
+        dt = now - self.last_time
+        self.last_time = now
+
+        gyro = self.sensor.get_gyro_data()
+        gyro_z = gyro["z"] - self.gyro_z_offset
+
+        self.heading_deg += gyro_z * dt
+
+        return self.heading_deg
+
+    def get_heading(self):
+        return self.update_heading()
+
+
+
+

@@ -18,7 +18,7 @@ from Libraries.functions import Robot
 from Libraries.controller_map import PS5Controller
 
 from acpcomms.messenger import Publisher
-import common.sonar as Sonar
+import sensor_streaming.common.sensors as Sonar
 
 
 
