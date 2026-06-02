@@ -8,7 +8,7 @@ from board import SCL, SDA
 import busio
 from adafruit_pca9685 import PCA9685
 from adafruit_motor import servo
-from sensors import GyroMPU6050
+from sensors import Gyro
 
 
 __all__ = [
@@ -418,7 +418,7 @@ class Robot:
         self.motors = Motors()
         self.arm = Arm(self.servo_hat.pca)
         self.camera = CameraServos(self.servo_hat.pca)
-        self.gyro = GyroMPU6050()
+        self.gyro = Gyro()
         self.gyro.calibrate()
 
     # Stop robot motors
