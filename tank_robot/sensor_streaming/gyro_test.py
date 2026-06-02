@@ -19,9 +19,9 @@ while True:
         f"Y: {data['accel']['y']:.2f} "
         f"Z: {data['accel']['z']:.2f}"
     )
-    turn_angle_gyro(90)
+    turn_angle_gyro(robot, 90)
 
-    drive_straight_gyro(speed=0.3, duration=5)
+    drive_straight_gyro(robot, speed=0.3, duration=5)
 
-    robot.turn_angle_gyro(-90)
+    turn_angle_gyro(robot, -90)
     time.sleep(0.1)
