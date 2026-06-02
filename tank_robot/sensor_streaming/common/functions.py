@@ -26,7 +26,10 @@ __all__ = [
     "stream_autonomous_state",
     "create_motor_state",
     "create_arm_state",
-    "create_camera_state"
+    "create_camera_state",
+    "drive_straight_gyro",
+    "turn_angle_gyro", 
+
 ]
 
 ARM_PRESETS = {
@@ -137,51 +140,6 @@ class Motors:
         self.set_right_motor(right_speed)
 
 
-
-    # Drive the robot using left and right motor speeds
-    def drive_robot(robot, motor_state, left_speed, right_speed):
-        left_speed = clamp(left_speed, -1.0, 1.0)
-        right_speed = clamp(right_speed, -1.0, 1.0)
-        robot.motors.set_tank(left_speed, right_speed)
-        update_motor_state(motor_state, left_speed, right_speed)
-
-    # Stop the robot and update motor telemetry
-    def stop_robot(robot, motor_state):
-        robot.motors.stop()
-        update_motor_state(motor_state, 0.0, 0.0)
-
-    def drive_straight_gyro(self, speed=0.25, duration=3.0, kp=0.015):
-        self.gyro.reset_heading()
-        start_time = time.time()
-        while time.time() - start_time < duration:
-            heading = self.gyro.get_heading()
-            correction = kp * heading
-
-            left_speed = speed - correction
-            right_speed = speed + correction
-
-            left_speed = max(min(left_speed, 1.0), -1.0)
-            right_speed = max(min(right_speed, 1.0), -1.0)
-
-            self.tank_set(left_speed, right_speed)
-            time.sleep(0.02)
-        self.tank_set(0, 0)
-
-    def turn_angle_gyro(self, angle, speed=0.25):
-        self.gyro.reset_heading()
-
-        target = abs(angle)
-
-        while abs(self.gyro.get_heading()) < target:
-
-            if angle > 0:
-                self.motors.set_tank(speed, -speed)
-            else:
-                self.motors.set_tank(-speed, speed)
-
-            time.sleep(0.02)
-
-        self.motors.stop()
 
 # Base class for smooth servo motion
 class SmoothServoGroup:
@@ -489,14 +447,6 @@ def create_motor_state():
         "right_motor": {"direction": "stopped", "speed": 0.0}
     }
 
-
-# Update the motor telemetry dictionary
-def update_motor_state(motor_state, left_speed, right_speed):
-    motor_state["left_motor"]["direction"] = speed_to_direction(left_speed)
-    motor_state["left_motor"]["speed"] = abs(left_speed)
-    motor_state["right_motor"]["direction"] = speed_to_direction(right_speed)
-    motor_state["right_motor"]["speed"] = abs(right_speed)
-
 # Create the arm telemetry dictionary
 def create_arm_state(robot):
     return {
@@ -514,7 +464,57 @@ def create_camera_state(robot):
         "tilt_angle": robot.camera.tilt_pos
     }
 
+# Update the motor telemetry dictionary
+def update_motor_state(motor_state, left_speed, right_speed):
+    motor_state["left_motor"]["direction"] = speed_to_direction(left_speed)
+    motor_state["left_motor"]["speed"] = abs(left_speed)
+    motor_state["right_motor"]["direction"] = speed_to_direction(right_speed)
+    motor_state["right_motor"]["speed"] = abs(right_speed)
 
+# Drive the robot using left and right motor speeds
+def drive_robot(robot, motor_state, left_speed, right_speed):
+    left_speed = clamp(left_speed, -1.0, 1.0)
+    right_speed = clamp(right_speed, -1.0, 1.0)
+    robot.motors.set_tank(left_speed, right_speed)
+    update_motor_state(motor_state, left_speed, right_speed)
+
+# Stop the robot and update motor telemetry
+def stop_robot(robot, motor_state):
+    robot.motors.stop()
+    update_motor_state(motor_state, 0.0, 0.0)
+
+def drive_straight_gyro(self, speed=0.25, duration=3.0, kp=0.015):
+    self.gyro.reset_heading()
+    start_time = time.time()
+    while time.time() - start_time < duration:
+        heading = self.gyro.get_heading()
+        correction = kp * heading
+
+        left_speed = speed - correction
+        right_speed = speed + correction
+
+        left_speed = max(min(left_speed, 1.0), -1.0)
+        right_speed = max(min(right_speed, 1.0), -1.0)
+
+        self.tank_set(left_speed, right_speed)
+        time.sleep(0.02)
+    self.tank_set(0, 0)
+
+def turn_angle_gyro(self, angle, speed=0.25):
+    self.gyro.reset_heading()
+
+    target = abs(angle)
+
+    while abs(self.gyro.get_heading()) < target:
+
+        if angle > 0:
+            self.motors.set_tank(speed, -speed)
+        else:
+            self.motors.set_tank(-speed, speed)
+
+        time.sleep(0.02)
+
+    self.motors.stop()
 
 # Update the arm telemetry dictionary
 def update_arm_state(robot, arm_state):
