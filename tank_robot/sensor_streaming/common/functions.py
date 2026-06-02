@@ -496,9 +496,9 @@ def drive_straight_gyro(self, speed=0.25, duration=3.0, kp=0.015):
         left_speed = max(min(left_speed, 1.0), -1.0)
         right_speed = max(min(right_speed, 1.0), -1.0)
 
-        self.tank_set(left_speed, right_speed)
+        self.motors.tank_set(left_speed, right_speed)
         time.sleep(0.02)
-    self.tank_set(0, 0)
+    self.motors.tank_set(0, 0)
 
 def turn_angle_gyro(self, angle, speed=0.25):
     self.gyro.reset_heading()
