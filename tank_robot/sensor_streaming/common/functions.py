@@ -61,7 +61,7 @@ class Motors:
         self.pwm1 = PWMOutputDevice(pwm1)
         self.dir2 = DigitalOutputDevice(dir2)
         self.pwm2 = PWMOutputDevice(pwm2)
-        self.sensors = GyroMPU6050()
+        self.sensors = Gyro()
         self.sensors.calibrate()
 
     # Stop both motors
