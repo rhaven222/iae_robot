@@ -1,6 +1,9 @@
+import sys
 import time
-from sensors import Gyro
-from functions import Robot
+sys.path.append("/home/megan/iae_robot/tank_robot/sensor_streaming")
+from common.functions import *
+from common.sensors import Gyro
+
 
 robot = Robot()
 gyro = Gyro()
