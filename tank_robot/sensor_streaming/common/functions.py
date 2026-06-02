@@ -8,7 +8,7 @@ from board import SCL, SDA
 import busio
 from adafruit_pca9685 import PCA9685
 from adafruit_motor import servo
-from sensors import Gyro
+from common.sensors import Gyro
 
 
 __all__ = [
