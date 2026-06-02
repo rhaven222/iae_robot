@@ -498,7 +498,6 @@ def drive_straight_gyro(self, speed=0.25, duration=3.0, kp=0.015):
     self.tank_set(0, 0)
 
 def turn_angle_gyro(self, angle, speed=0.25):
-
     self.gyro.reset_heading()
 
     target = abs(angle)
@@ -506,13 +505,13 @@ def turn_angle_gyro(self, angle, speed=0.25):
     while abs(self.gyro.get_heading()) < target:
 
         if angle > 0:
-            self.tank_set(speed, -speed)
+            self.motors.set_tank(speed, -speed)
         else:
-            self.tank_set(-speed, speed)
+            self.motors.set_tank(-speed, speed)
 
         time.sleep(0.02)
 
-    self.tank_set(0, 0)
+    self.motors.stop()
 
 # Update the arm telemetry dictionary
 def update_arm_state(robot, arm_state):
