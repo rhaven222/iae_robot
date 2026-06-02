@@ -14,13 +14,8 @@ use camera to choose a turn direction, then continue.
 
 import time
 
-from common.robot import Robot
-from common.functions import (
-    get_distance_cm,
-    drive_straight_gyro,
-    turn_degrees_gyro,
-    camera_open_direction,
-)
+from common.sensors import Sonar, Gyro
+from common.functions import *
 
 
 OBSTACLE_CM = 35
@@ -39,7 +34,7 @@ def main():
 
     try:
         while True:
-            distance = get_distance_cm()
+            distance = Sonar.getDistance()
 
             if distance is None:
                 print("No sonar reading")
