@@ -1,5 +1,5 @@
 import time
-from gyro import Gyro
+from sensors import Gyro
 from functions import Robot
 
 robot = Robot()
